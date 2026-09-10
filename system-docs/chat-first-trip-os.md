@@ -40,7 +40,14 @@ A language-model-named venue that is **not** in the retrieved catalog is **not**
 
 ## Architecture
 
-**Stack assumption (not a Wandr coupling):** FastAPI modular monolith + Next.js + PostGIS + Qdrant + LiteLLM + LangGraph + MapLibre + cookie session (guest now, OAuth later). Shared libraries with Wandr are optional and post-v1. A later new-repo design may revise this stack without changing the behavior specs.
+**Stack (see also `system-docs/architecture-draft.md` — settled):** FastAPI modular monolith at repo root (`/src`) + Next.js (`/frontend`) + PostGIS (+ Qdrant later) + LiteLLM multi-model gateway + LangGraph + ARQ/Redis for long jobs + MapLibre + guest cookie session (OAuth later). Phase delivery via `phase-slices/`. Shared libraries with Wandr are optional and post-v1.
+
+
+**Auth / save:** Guests may chat, HITL, and generate a session draft without a login wall. **Persisting a saved trip** and **saving explore places** require an authenticated user (OAuth later). Explore **Last trip location** remains only after a **saved** trip.
+
+**LLM:** Single `LlmGateway` (LiteLLM). Role aliases (`dialogue`, `narrative`, `embed`) map to Bedrock / Gemini / OpenRouter / NIM (or others) via env — no scattered vendor SDKs.
+
+**Generate:** Abortable streaming progress (`GenerateRunner`); default in-process SSE; ARQ adapter later. Catalog acquire may use ARQ earlier.
 
 ```
                     ┌─────────────┐     ┌─────────────┐
@@ -72,7 +79,7 @@ A language-model-named venue that is **not** in the retrieved catalog is **not**
 
 \* Last trip location Explore exists only after a **saved** trip.
 
-Future-app HTTP (when the new repo exists) is **not** Wandr OpenAPI. Do not reuse or invent `guideagent` routes here.
+Future-app HTTP is **not** Wandr OpenAPI. Do not reuse or invent `guideagent` routes here.
 
 ---
 
@@ -202,11 +209,13 @@ Implement in a **future new OpenSpec root / remotes**. This vault apply does **n
 | **P2** Geo | Intent schema + TripScope + HITL in chat | Goldens: city / region / country / ambiguous |
 | **P3** Catalog | Acquire by chosen region/hubs (never country centroid scrape) | Honest readiness floor |
 | **P4** Planner | Travel-engine-class behind generate budget | Itinerary; no invented coords; validation gate |
-| **P5** Map + guidebook | Days + points; polylines when routing exists | Reopenable artifact |
+| **P5** Map + guidebook | Days + points; polylines when routing exists; **export DTO** | Reopenable artifact |
+| **P5b** PDF/print | Export from guidebook DTO | Download/print |
 | **P6** Revision | Chat edits, capped replans | Structure+map update; eval flag |
 | **P7** Explore | Dual-tab nearby (GPS→IP; last trip after save) | No fake POIs; last-trip locked pre-save |
 | **P8** Booking slot | Empty stays; save without vendor | No fake rates |
 | **P9** Hardening | Eval gate, cost caps, abort, rate limits | Golden harness pass |
+| **Later** | OAuth save, media, Qdrant, ARQ generate adapter, booking adapters | Facades |
 
 ---
 
