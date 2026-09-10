@@ -1,0 +1,56 @@
+schema: spec-driven
+
+context: |
+  Project: agentic-trip — conversational trip OS (chat-first), sibling to Wandr.
+  Not Wandr. Do not invent Wandr OpenAPI paths, DTOs, or env vars.
+
+  Living product bible: system-docs/chat-first-trip-os.md
+  Cross-boundary notes from Wandr vault (reference only): system-docs/*
+
+  Stack assumption (revisable in design):
+  FastAPI modular monolith + Next.js + PostGIS + Qdrant + LiteLLM + LangGraph + MapLibre
+  + cookie session (guest now, OAuth later). Shared libraries with Wandr are optional/post-v1.
+
+  Product one-liner:
+  User prompts a country, region, place, or vibe in chat; system resolves geography,
+  plans a grounded multi-day itinerary with a map, allows in-chat revision, and offers
+  location-based Explore. Booking is optional and hollow in v1.
+
+  Core laws:
+  - Structure from code, narrative from the LLM (no unconstrained day structure)
+  - Single LLM gateway; single geo gateway
+  - Phase-gated typed tools; bounded loops; validate before finish
+  - Stream abort on disconnect; generation timeout
+  - Eval harness + fail-soft tracing from day one
+  - A model-named venue not in the retrieved catalog is never scheduled
+  - Coordinates and polylines are never invented to look nicer
+
+  Capabilities (main specs):
+  - conversational-trip-planner
+  - adaptive-country-scope
+  - explore-geo-feed
+  - booking-placeholder
+
+rules:
+  proposal:
+    - "State whether work is docs-only, backend, frontend, infra, or cross-cutting"
+    - "Include Non-goals; this product is not Wandr — never invent Wandr endpoints/DTOs/env"
+    - "Prefer citing system-docs/chat-first-trip-os.md and existing openspec/specs over inventing contracts"
+  specs:
+    - "Behavior-first; prefer Given/When/Then"
+    - "Specs describe this product's contracts — not Wandr module features"
+  design:
+    - "Prefer single LLM/geo gateways; phase-gated tools; abortable generate"
+    - "Do not invent crow-flies polylines or uncatalogued venues as schedule facts"
+  tasks:
+    - "Tag each task as docs / backend / frontend / infra"
+    - "Every implementation phase should end with a runnable proof where applicable"
+
+operations:
+  apply:
+    guidance:
+      - "Implement in this repo (agentic-trip); do not edit Wandr guideagent/guideagent-frontend remotes unless explicitly scoped"
+      - "Keep system-docs/chat-first-trip-os.md as SSOT until leaner package context docs exist"
+  archive:
+    guidance:
+      - "Archive under agentic-trip/openspec/ only; leave Wandr/tripplanner OpenSpec alone"
