@@ -4,7 +4,7 @@ context: |
   Project: agentic-trip — conversational trip OS (chat-first), sibling to Wandr.
   Not Wandr. Do not invent Wandr OpenAPI paths, DTOs, or env vars.
 
-  Living product bible: system-docs/chat-first-trip-os.md
+  Product goal SSOT: system-docs/product-goal.md
   Cross-boundary notes from Wandr vault (reference only): system-docs/*
 
   Stack assumption (revisable in design):
@@ -30,12 +30,13 @@ context: |
   - adaptive-country-scope
   - explore-geo-feed
   - booking-placeholder
+  - fail-soft-boundaries
 
 rules:
   proposal:
     - "State whether work is docs-only, backend, frontend, infra, or cross-cutting"
     - "Include Non-goals; this product is not Wandr — never invent Wandr endpoints/DTOs/env"
-    - "Prefer citing system-docs/chat-first-trip-os.md and existing openspec/specs over inventing contracts"
+    - "Prefer citing system-docs/product-goal.md and existing openspec/specs over inventing contracts"
   specs:
     - "Behavior-first; prefer Given/When/Then"
     - "Specs describe this product's contracts — not Wandr module features"
@@ -50,7 +51,7 @@ operations:
   apply:
     guidance:
       - "Implement in this repo (agentic-trip); do not edit Wandr guideagent/guideagent-frontend remotes unless explicitly scoped"
-      - "Keep system-docs/chat-first-trip-os.md as SSOT until leaner package context docs exist"
+      - "Keep system-docs/product-goal.md as SSOT until leaner package context docs exist"
   archive:
     guidance:
       - "Archive under agentic-trip/openspec/ only; leave Wandr/tripplanner OpenSpec alone"

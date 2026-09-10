@@ -1,11 +1,12 @@
 # Architecture draft — agentic-trip
 
 > **Status:** SETTLED (promoted) — architecture + stack decisions locked for implementation planning.  
-> **SSOT product behavior:** [`chat-first-trip-os.md`](./chat-first-trip-os.md)  
+> **SSOT product behavior:** [`product-goal.md`](./product-goal.md)  
+> **LLD (modules, APIs, algorithms):** [`llm.md`](./llm.md)  
 > **Free media/map notes:** [`free-media-map-guidebook.md`](./free-media-map-guidebook.md)  
-> **Rule:** Prefer changing this file + bible together if a locked decision shifts. OpenSpec implementation changes come next (phase-by-phase).
+> **Rule:** Prefer changing this file + [`product-goal.md`](./product-goal.md) together if a locked decision shifts. OpenSpec implementation changes come next (phase-by-phase). HTTP paths for this product live in `llm.md` (`/api/v1/…` plus `GET /health` / `GET /health/ready`) — not Wandr.
 
-Last updated: 2026-09-11 (promoted — models, generate runner, auth/save, PDF timing)
+Last updated: 2026-09-11 (product-goal SSOT rename + pointer retarget)
 
 ---
 
@@ -586,35 +587,45 @@ Instrument → Trace every generate/retrieve → Offline goldens → Score → R
 ## 14. Implementation procedure (phase-slices program)
 
 ```
-phase-slices/Pn blueprint  →  implement  →  tests + CI validation gate  →  Pn+1
-         │                         │
-         └──── fail-soft table ────┘  (required in every block)
+blueprint.md  P{n}.1 → P{n}.2 → …  →  tests + CI validation gate  →  P{n+1}
+       │                                    │
+       ├──── llm.md (LLD: services/routes) ─┤
+       └──── fail-soft + SWE/LLD rules ─────┘
 ```
+
+Sub-phases live **inside** existing `phase-slices/<id>/blueprint.md` (e.g. P0.1 … P0.12). Do not create nested `p0.1/` folders. A later OpenSpec **code** change remains one per phase (`p0-foundation`, …) and is executed sub-phase-by-sub-phase.
+
+HTTP for this product: see [`llm.md`](./llm.md) §5 (`GET /health`, `GET /health/ready`, `/api/v1/…`). Do not invent Wandr `guideagent` paths.
 
 ### Relationship: OpenSpec vs phase-slices
 
 | Layer | Role |
 |-------|------|
-| **`phase-slices/Pn/`** | Detailed implementation blueprint, guardrails, validation checklist, refs |
+| **`phase-slices/Pn/`** | Sub-phase blueprint, guardrails (fail-soft + SWE/LLD), validation, refs |
+| **`system-docs/llm.md`** | Low-level design SSOT (classes, APIs, algorithms, sequences) |
 | **OpenSpec change `pN-…`** | Formal proposal/design/tasks/specs when that phase is built |
-| **`phase-slices-program`** | Docs change that locks layout + authors all slice blueprints up front |
+| **`phase-slices-program`** | Docs change that locked layout + authored slice shells |
+| **`phase-slices-function-level-lld`** | Docs change that split slices into function-level sub-phases + LLD |
 
 ### P0 foundation (first code slice — later apply)
 
-1. Scaffold root `/src` + `/frontend` + Compose (`api`, `db` PostGIS) + `/alembic`.
-2. Settings, logging, health, Alembic baseline.
-3. Ports stubs: `LlmGateway`, `AuthPort` (guest), `Obs` (Langfuse fail-soft), eval smoke.
-4. Module packages importable; no fake features.
-5. Proof: `GET /health` + pytest smoke + CI job green.
+Execute as **P0.1 → P0.12** in [`phase-slices/p0-foundation/blueprint.md`](./phase-slices/p0-foundation/blueprint.md):
+
+1. P0.1–P0.3: `/src` package, settings/logging, Compose `api`+`db`, Alembic.
+2. P0.4–P0.9: ports stubs, module shells, guest AuthPort, LlmGateway stub, monitor no-op, evals smoke.
+3. P0.10: `GET /health` + `GET /health/ready` + `main.py`.
+4. P0.11–P0.12: `workers/` placeholder; pytest + CI smoke.
+5. Phase proof: health + pytest smoke + CI job green. Do not start P1 until the P0 validation gate passes.
 
 ### Guardrails while implementing
 
-- One phase proof before the next.
+- One **sub-phase** proof before the next sub-phase; one **phase** proof before the next slice.
 - No vendor SDKs outside adapters.
 - No media/PDF on generate hot path.
 - Guest can continue; durable save waits for auth capability.
 - Every external/IO block documents **failure → fallback** (bible table + slice guardrails).
-- Prefer `/opsx-propose` + `/opsx-apply` **per phase** for code; program blueprints first.
+- SWE/LLD regulations: [`phase-slices/SHARED-SWE-LLD.md`](./phase-slices/SHARED-SWE-LLD.md).
+- Prefer `/opsx-propose` + `/opsx-apply` **per phase** for code; follow `llm.md` for function/route names.
 
 ---
 
@@ -641,10 +652,12 @@ Borrowed from the product bible; enforced per module/block:
 
 | File | Contents |
 |------|----------|
-| `blueprint.md` | Goal, scope, modules touched, step plan, proof |
-| `guardrails.md` | Fail-soft table for this slice, non-goals, abstraction rules |
-| `validation.md` | Tests, goldens, CI checks, exit criteria before next phase |
-| `references.md` | Links to bible, architecture, OpenSpec specs |
+| `blueprint.md` | Goal, scope, numbered sub-phases (`P{n}.{m}`) with services/routes/functions, slice proof |
+| `guardrails.md` | Fail-soft table + SWE/LLD delta for this slice |
+| `validation.md` | Sub-phase checks + phase CI; all must pass before next slice |
+| `references.md` | Links to bible, architecture, `llm.md`, OpenSpec specs, shared rules |
+
+Shared: [`phase-slices/SHARED-FAIL-SOFT.md`](./phase-slices/SHARED-FAIL-SOFT.md), [`phase-slices/SHARED-SWE-LLD.md`](./phase-slices/SHARED-SWE-LLD.md), [`llm.md`](./llm.md).
 
 ### Slice catalog
 
@@ -673,3 +686,5 @@ Borrowed from the product bible; enforced per module/block:
 | 2026-09-11 | Promoted: L16–L19 multi-model, SSE generate, guest/save, PDF P5b |
 | 2026-09-11 | L20–L23: root `/src`, phase-slices, fail-soft, service modules; §15 |
 | 2026-09-11 | **Apply `phase-slices-program`:** all slice packages + shared fail-soft; L24 `monitor/`+`evals/` modules; ready to archive |
+| 2026-09-11 | **Apply `phase-slices-function-level-lld`:** sub-phases inside blueprints; `llm.md` LLD; SWE/LLD guardrails; HTTP catalog `/api/v1` |
+| 2026-09-11 | Product behavior SSOT renamed to [`product-goal.md`](./product-goal.md) (was `chat-first-trip-os.md`); pointers retargeted |

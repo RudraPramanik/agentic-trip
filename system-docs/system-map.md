@@ -1,6 +1,6 @@
 # System map — agentic-trip
 
-> Sibling product to Wandr. Behavior SSOT: [`chat-first-trip-os.md`](./chat-first-trip-os.md).  
+> Sibling product to Wandr. Behavior SSOT: [`product-goal.md`](./product-goal.md).  
 > Settled architecture: [`architecture-draft.md`](./architecture-draft.md).  
 > Phase blueprints: [`../phase-slices/`](../phase-slices/).
 
