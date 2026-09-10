@@ -36,6 +36,7 @@ Last updated: 2026-09-11 (promoted — models, generate runner, auth/save, PDF t
 | L21 | **`phase-slices/`** = per-phase implementation blueprints | Blueprint → validate/CI → next phase; see §14–§15 |
 | L22 | **Fail-soft / error boundary in every block** | Absolute fallbacks; no silent hang/hallucinate; see §15 |
 | L23 | Modular monolith with **service-separated modules** under `/src` | Max modularity without microservices day one |
+| L24 | **`monitor/` + `evals/`** are first-class modules beside features | Skeleton in P0; deepen later (P9 gate) |
 
 ---
 
@@ -69,10 +70,11 @@ agentic-trip/
 │   │   ├── llm/               # LiteLLM gateway only
 │   │   ├── agents/            # LangGraph graphs + state
 │   │   ├── auth/              # guest now; OAuth later
-│   │   └── obs/               # tracing, evals
+│   │   ├── monitor/           # tracing / Langfuse (skeleton early; deepen later)
+│   │   └── evals/             # golden harness / scores (skeleton early; deepen later)
 │   └── workers/               # ARQ tasks
 ├── alembic/                   # migrations at repo root
-├── tests/                     # pytest (+ evals/goldens)
+├── tests/                     # pytest (+ tests/evals goldens)
 ├── frontend/                  # Next.js (run separately; extractable later)
 ├── system-docs/               # bible + settled architecture
 ├── phase-slices/              # per-phase blueprints, guardrails, validation
@@ -86,6 +88,8 @@ agentic-trip/
 **Why root `/src`:** single deployable API module; clearer imports; FE stays optional roommate until isolation.
 
 **Modularity rule:** each `modules/<feature>/` owns service + repo/adapters for that concern; routers only depend on services; agents only call ports/services.
+
+**AI eng modules:** `monitor/` (online traces/spans) and `evals/` (offline goldens/scores) sit beside other feature modules. P0 may only ship importable shells + fail-soft no-ops; deepen per phase (especially P9).
 
 ---
 
@@ -646,7 +650,7 @@ Borrowed from the product bible; enforced per module/block:
 
 | ID | Name |
 |----|------|
-| `p0-foundation` | Root `/src`, Docker, health, obs/eval skeleton |
+| `p0-foundation` | Root `/src`, Docker, health, **monitor** + **evals** shells |
 | `p1-chat` | Guest cookie, chat SSE |
 | `p2-dialogue-scope` | Intent, TripScope, HITL interrupt |
 | `p3-catalog` | Acquire ARQ, PostGIS retrieve |
@@ -668,3 +672,4 @@ Borrowed from the product bible; enforced per module/block:
 | 2026-09-11 | L10–L15: HITL, engine, ARQ, Qdrant-later, PDF/FE, SWE, evals |
 | 2026-09-11 | Promoted: L16–L19 multi-model, SSE generate, guest/save, PDF P5b |
 | 2026-09-11 | L20–L23: root `/src`, phase-slices, fail-soft, service modules; §15 |
+| 2026-09-11 | **Apply `phase-slices-program`:** all slice packages + shared fail-soft; L24 `monitor/`+`evals/` modules; ready to archive |

@@ -4,11 +4,17 @@
 
 ## Goal
 
-Scaffold root modular monolith (`/src`), Docker API+PostGIS, health, obs/eval smoke, empty module shells, guest AuthPort stub, LlmGateway stub.
+Scaffold root modular monolith (`/src`), Docker API+PostGIS, health, **monitor** + **evals** module shells (fail-soft no-ops OK), empty feature module shells, guest AuthPort stub, LlmGateway stub.
 
 ## Scope / modules
 
-src/main.py, core, db, ports stubs, modules/* shells, obs, alembic, tests, Dockerfile, docker-compose, frontend stub optional
+- `src/main.py`, `core/`, `db/`, `ports/` stubs
+- `modules/` shells: chat, geo, catalog, planner, trips, explore, media, booking, llm, agents, auth, **monitor**, **evals**
+- `workers/` package placeholder (ARQ later)
+- `alembic/`, `tests/` (+ `tests/evals` placeholder), `Dockerfile`, `docker-compose`
+- `frontend/` stub optional
+
+**Note:** Deep monitor/evals behavior can land later (per phase + P9); P0 only needs importable packages and fail-soft no-ops so tracing/eval hooks have a home.
 
 ## Step plan (high level)
 
@@ -19,9 +25,10 @@ src/main.py, core, db, ports stubs, modules/* shells, obs, alembic, tests, Docke
 
 ## Proof
 
-GET /health; pytest smoke; CI workflow smoke (or documented local gate); obs no-op without keys
+`GET /health`; pytest smoke; CI workflow smoke (or documented local gate); monitor no-op without keys; evals smoke runner importable
 
 ## Explicit non-goals
 
-- Do not pull work from later slices.
+- Do not pull work from later slices (no real chat/generate).
 - Do not invent Wandr APIs or DTOs.
+- Do not require Langfuse keys for health to pass.

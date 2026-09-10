@@ -9,7 +9,7 @@ frontend/ (Next.js)                   src/ (FastAPI modular monolith @ repo root
 ┌─────────────────────┐               ┌────────────────────────────────┐
 │ Chat · Map · Guide  │── HTTP/SSE ──▶│ Orchestrator                   │
 │ Explore             │               │  dialogue_graph | generate     │
-└─────────────────────┘               │ modules/* service-separated    │
+└─────────────────────┘               │ modules/* (+ monitor, evals)   │
                                       │ ARQ worker (long jobs)         │
                                       └────────┬───────────────────────┘
                                                │
@@ -19,5 +19,6 @@ frontend/ (Next.js)                   src/ (FastAPI modular monolith @ repo root
 ```
 
 **Layout:** `/src` + `/alembic` + `/tests` + `/frontend` + `/phase-slices` + `/system-docs`  
+**Modules include:** feature services + **`monitor/`** (traces) + **`evals/`** (goldens) — skeleton early, deepen later.  
 **Save rule:** guest continues; durable trip/explore saves need auth (OAuth later).  
 **Delivery:** each `phase-slices/pN` → implement → validation/CI → next.
