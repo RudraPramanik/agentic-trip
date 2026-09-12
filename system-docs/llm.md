@@ -109,7 +109,7 @@ Prefix: `/api/v1` except health. Routers depend on services only.
 | P0 | `GET /health` | probe | — | `{ "status": "ok" }` |
 | P0 | `GET /health/ready` | probe | — | `{ "status": "ok"\|"degraded", "db": bool }` |
 | P1 | `POST /api/v1/sessions` | `ChatService.create_session` | `{}` | `{ "session_id", "guest": true }` + `Set-Cookie` |
-| P1 | `POST /api/v1/sessions/{id}/messages` | `ChatService.send_message` | `{ "text" }` | SSE: `token` / `message` / `hitl` / `error` |
+| P1 | `POST /api/v1/sessions/{id}/messages` | `ChatService.send_message` | `{ "text" }` | SSE: `token` / `message` / `error` (P1). `hitl` from P2 |
 | P1 | `GET /api/v1/sessions/{id}` | `ChatService.get_session` | — | `{ session_id, messages[], budget, hitl?, trip_scope? }` |
 | P2 | `POST /api/v1/sessions/{id}/hitl` | resume HITL | `{ "choice_id" }` or `{ "text" }` | session projection |
 | P3 | `GET /api/v1/sessions/{id}/catalog` | `CatalogService.readiness` | — | `{ "ready": bool, "status", "place_count"? }` |

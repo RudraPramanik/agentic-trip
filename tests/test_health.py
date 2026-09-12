@@ -53,13 +53,6 @@ async def test_ready_live_database() -> None:
     assert response.json() == {"status": "ok", "db": True}
 
 
-def test_sessions_is_not_a_product_route() -> None:
-    response = _client(db_ok=True).post("/api/v1/sessions")
-    assert response.status_code in {404, 405}
-    body = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
-    assert "session_id" not in body
-
-
 def test_generate_is_not_a_product_route() -> None:
     response = _client(db_ok=True).post("/api/v1/sessions/demo/generate")
     assert response.status_code in {404, 405}

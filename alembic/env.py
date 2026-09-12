@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from src.db.base import Base
 
+# Register ORM models on metadata for Alembic.
+from src.modules.chat.models import TripSessionState as _TripSessionState  # noqa: F401
+
 config = context.config
 
 if config.config_file_name is not None:

@@ -1,23 +1,5 @@
-from dataclasses import dataclass
-from typing import Any
+from src.modules.llm.dialogue_stub import LocalDialogueStub
+from src.modules.llm.stub import StubLlmGateway
+from src.modules.llm.types import LlmUnavailable
 
-from src.ports import LlmGateway
-
-
-@dataclass(frozen=True)
-class LlmUnavailable:
-    role: str
-    reason: str = "unconfigured"
-
-
-class StubLlmGateway(LlmGateway):
-    async def complete(
-        self,
-        role: str,
-        messages: list[Any],
-        schema: Any | None = None,
-    ) -> LlmUnavailable:
-        return LlmUnavailable(role=role)
-
-    async def embed(self, texts: list[str]) -> LlmUnavailable:
-        return LlmUnavailable(role="embed")
+__all__ = ["LlmUnavailable", "LocalDialogueStub", "StubLlmGateway"]

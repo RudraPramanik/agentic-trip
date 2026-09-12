@@ -20,7 +20,7 @@ Implement **one sub-phase at a time**.
 - **Goal:** Persist guest identity on HTTP cookie via `AuthPort`.
 - **Modules:** `src/modules/auth/`
 - **Types:** `GuestPrincipal`, `CookieAuthAdapter(AuthPort)`
-- **Functions:** `issue_guest()`, `read_principal()`, `set_guest_cookie(response)`
+- **Functions:** `issue_guest()`, `read_principal()`, `set_guest_cookie(response)` (adapter helper; `AuthPort` surface remains `issue_guest` / `read_principal` per `llm.md` §4)
 - **Services:** none (port/adapter)
 - **Routes / APIs:** none (used by session routes)
 - **Algorithms / data:** signed/random guest id; httpOnly cookie

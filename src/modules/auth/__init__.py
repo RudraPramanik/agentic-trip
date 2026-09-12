@@ -15,9 +15,10 @@ class GuestPrincipal:
     guest_id: str
 
 
-class StubAuthAdapter(AuthPort):
-    def issue_guest(self, response: Response) -> GuestPrincipal:
-        guest_id = str(uuid4())
+class CookieAuthAdapter(AuthPort):
+    """Guest identity via httpOnly cookie. Never trust client-supplied user_id."""
+
+    def set_guest_cookie(self, response: Response, guest_id: str) -> None:
         response.set_cookie(
             GUEST_COOKIE_NAME,
             guest_id,
@@ -25,6 +26,10 @@ class StubAuthAdapter(AuthPort):
             samesite="lax",
             secure=os.environ.get("ENVIRONMENT", "local") != "local",
         )
+
+    def issue_guest(self, response: Response) -> GuestPrincipal:
+        guest_id = str(uuid4())
+        self.set_guest_cookie(response, guest_id)
         return GuestPrincipal(guest_id=guest_id)
 
     def read_principal(self, request: Request) -> GuestPrincipal | None:
@@ -32,3 +37,7 @@ class StubAuthAdapter(AuthPort):
         if not guest_id:
             return None
         return GuestPrincipal(guest_id=guest_id)
+
+
+# P0 tests and fakes may still construct the stub name.
+StubAuthAdapter = CookieAuthAdapter
