@@ -13,6 +13,16 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api:
     build: .
     depends_on:
@@ -20,6 +30,19 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://at:at@db:5432/at
+      REDIS_URL: redis://redis:6379
       APPLY_SCHEMA_ON_BOOT: "true"
     ports:
       - "8000:8000"
+
+  worker:
+    build: .
+    command: ["/app/.venv/bin/arq", "src.workers.acquire.WorkerSettings"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://at:at@db:5432/at
+      REDIS_URL: redis://redis:6379

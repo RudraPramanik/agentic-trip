@@ -221,4 +221,5 @@ class ChatService:
             budget=state.budget,
             hitl=state.hitl,
             trip_scope=state.trip_scope,
+            catalog=state.catalog,
         )

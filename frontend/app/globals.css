@@ -119,3 +119,24 @@ input:disabled {
   background: rgba(15, 107, 76, 0.08);
 }
 
+.catalog-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0;
+}
+
+.catalog-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  flex: 1 1 auto;
+}
+
+.catalog-acquire {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+

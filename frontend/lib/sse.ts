@@ -34,6 +34,35 @@ export async function getSession(
   });
 }
 
+export async function getCatalog(
+  apiBase: string,
+  sessionId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}/catalog`, {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
+export async function postCatalogAcquire(
+  apiBase: string,
+  sessionId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/catalog/acquire`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+}
+
+export type CatalogReadiness = {
+  ready?: boolean;
+  status?: string;
+  place_count?: number | null;
+  error?: string | null;
+};
+
 export type HitlCandidate = {
   choice_id?: string;
   geo_id?: string;

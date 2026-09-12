@@ -68,5 +68,9 @@ class TravelEngine(ABC):
 
 class PlaceRepository(ABC):
     @abstractmethod
-    def retrieve(self, scope: Any, prefs: Any) -> Any:
+    async def upsert_many(self, places: list[Any]) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def retrieve(self, scope: Any, prefs: Any) -> Any:
         raise NotImplementedError

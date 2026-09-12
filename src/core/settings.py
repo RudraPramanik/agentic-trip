@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     nominatim_timeout_seconds: float = 5.0
     dialogue_prefer_postgres_checkpointer: bool = False
     apply_schema_on_boot: bool = False
+    redis_url: str = "redis://localhost:6379"
+    overpass_base_url: str = "https://overpass-api.de/api/interpreter"
+    overpass_timeout_seconds: float = 20.0
+    otm_base_url: str = "https://api.opentripmap.com/0.1/en/places/bbox"
+    otm_api_key: str | None = None
+    otm_timeout_seconds: float = 15.0
+    places_user_agent: str = "agentic-trip/0.1 (local; contact: dev@localhost)"
+    acquire_max_tries: int = 3
+    catalog_enqueue_inline: bool = False
 
     @property
     def cookie_secure(self) -> bool:

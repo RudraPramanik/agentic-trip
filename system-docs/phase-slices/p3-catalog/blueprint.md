@@ -1,6 +1,6 @@
 # P3 Catalog acquire + retrieve — blueprint
 
-> Status: planning blueprint (implement via later OpenSpec `p3-catalog`).  
+> Status: implemented (OpenSpec `p3-catalog`).  
 > LLD: [`../../llm.md`](../../llm.md) §7.3, §8
 
 ## Goal

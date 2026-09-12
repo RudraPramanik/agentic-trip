@@ -30,3 +30,4 @@ class SessionProjection(BaseModel):
     budget: str
     hitl: dict[str, Any] | None = None
     trip_scope: dict[str, Any] | None = None
+    catalog: dict[str, Any] | None = None

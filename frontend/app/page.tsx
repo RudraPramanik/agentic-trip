@@ -3,9 +3,12 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import {
+  CatalogReadiness,
   HitlCandidate,
   HitlPayload,
+  getCatalog,
   getSession,
+  postCatalogAcquire,
   postHitlChoice,
   postMessage,
   readSse,
@@ -31,6 +34,11 @@ export default function ChatShell() {
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
   const [hitl, setHitl] = useState<HitlPayload | null>(null);
+  const [tripScope, setTripScope] = useState<{
+    kind?: string;
+    name?: string;
+  } | null>(null);
+  const [catalog, setCatalog] = useState<CatalogReadiness | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +74,7 @@ export default function ChatShell() {
       messages?: { role: string; content: string }[];
       hitl?: HitlPayload | null;
       trip_scope?: { kind?: string; name?: string } | null;
+      catalog?: CatalogReadiness | null;
     };
     if (body.messages) {
       setLines(
@@ -78,9 +87,16 @@ export default function ChatShell() {
     const pending =
       body.hitl && body.hitl.status === "pending" ? body.hitl : null;
     setHitl(pending);
+    setTripScope(body.trip_scope ?? null);
+    if (body.catalog) {
+      setCatalog(body.catalog);
+    }
     if (body.trip_scope?.kind) {
+      const cat = body.catalog?.status
+        ? ` · catalog: ${body.catalog.status}`
+        : "";
       setStatus(
-        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}`,
+        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}${cat}`,
       );
     } else if (pending) {
       setStatus(pending.prompt || "Pick a place to continue");
@@ -164,7 +180,44 @@ export default function ChatShell() {
     [sessionId, busy, refreshSession],
   );
 
+  const onAcquireCatalog = useCallback(async () => {
+    if (!sessionId || busy) return;
+    setBusy(true);
+    try {
+      const res = await postCatalogAcquire(API_BASE, sessionId);
+      if (!res.ok) {
+        setLines((prev) => [
+          ...prev,
+          { role: "error", content: `Catalog acquire failed: ${res.status}` },
+        ]);
+        return;
+      }
+      const body = (await res.json()) as { status?: string };
+      setStatus(`Catalog acquire: ${body.status ?? "enqueued"}`);
+      const cat = await getCatalog(API_BASE, sessionId);
+      if (cat.ok) {
+        const readiness = (await cat.json()) as CatalogReadiness;
+        setCatalog(readiness);
+        setStatus(
+          `Catalog: ${readiness.status ?? "unknown"}` +
+            (readiness.place_count != null
+              ? ` (${readiness.place_count} places)`
+              : ""),
+        );
+      }
+      await refreshSession(sessionId);
+    } catch (err) {
+      setLines((prev) => [
+        ...prev,
+        { role: "error", content: `Catalog acquire error: ${err}` },
+      ]);
+    } finally {
+      setBusy(false);
+    }
+  }, [sessionId, busy, refreshSession]);
+
   const chips = hitl?.status === "pending" ? hitl.candidates ?? [] : [];
+  const showAcquire = Boolean(tripScope?.kind) && !hitl;
 
   return (
     <main className="shell">
@@ -200,6 +253,24 @@ export default function ChatShell() {
                 </button>
               );
             })}
+          </div>
+        ) : null}
+        {showAcquire ? (
+          <div className="catalog-panel" role="group" aria-label="Catalog">
+            <p className="catalog-status">
+              Catalog: {catalog?.status ?? "not started"}
+              {catalog?.place_count != null
+                ? ` · ${catalog.place_count} places`
+                : ""}
+            </p>
+            <button
+              type="button"
+              className="catalog-acquire"
+              disabled={busy}
+              onClick={() => onAcquireCatalog()}
+            >
+              Acquire places
+            </button>
           </div>
         ) : null}
       </section>

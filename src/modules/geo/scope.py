@@ -45,6 +45,7 @@ def classify_scope(
             hubs=[],
             day_budget=days,
             explain=f"Planning around {candidate.name} as a city base.",
+            country_code=candidate.country_code,
         )
 
     if named_region:
@@ -56,6 +57,7 @@ def classify_scope(
             hubs=[],
             day_budget=days,
             explain=f"Planning within the {candidate.name} region.",
+            country_code=candidate.country_code,
         )
 
     if place_class != "country":
@@ -84,6 +86,7 @@ def classify_scope(
                 f"For a short {days}-day stay in {candidate.name}, "
                 f"focusing on {best['name']} rather than a nationwide hop."
             ),
+            country_code=candidate.country_code,
         )
 
     hubs = list(_DEFAULT_COUNTRY_HUBS.get(key) or [])
@@ -115,6 +118,7 @@ def classify_scope(
             f"Country stay in {candidate.name} with hubs: "
             + ", ".join(h["name"] for h in hubs)
         ),
+        country_code=candidate.country_code,
     )
 
 

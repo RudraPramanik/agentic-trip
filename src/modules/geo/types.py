@@ -57,6 +57,7 @@ class TripScope:
     hubs: list[dict[str, Any]] = field(default_factory=list)
     day_budget: int | None = None
     explain: str | None = None
+    country_code: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -67,6 +68,7 @@ class TripScope:
             "hubs": list(self.hubs),
             "day_budget": self.day_budget,
             "explain": self.explain,
+            "country_code": self.country_code,
         }
 
 

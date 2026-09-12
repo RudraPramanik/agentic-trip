@@ -17,6 +17,7 @@ class RecordingObs(ObsPort):
     def __init__(self) -> None:
         self.traces: list[str] = []
         self.spans: list[str] = []
+        self.span_kwargs: list[dict[str, Any]] = []
 
     @contextmanager
     def start_trace(self, name: str, **kwargs: Any) -> Iterator[None]:
@@ -26,6 +27,7 @@ class RecordingObs(ObsPort):
     @contextmanager
     def span(self, name: str, **kwargs: Any) -> Iterator[None]:
         self.spans.append(name)
+        self.span_kwargs.append(dict(kwargs))
         yield
 
     @contextmanager
