@@ -8,6 +8,7 @@ from typing import Any
 from starlette.requests import Request
 from starlette.responses import Response
 
+from src.modules.agents.dialogue import DialogueOutcome, DialogueRunner
 from src.modules.auth import GuestPrincipal
 from src.modules.chat.dto import (
     ChatMessage,
@@ -16,14 +17,17 @@ from src.modules.chat.dto import (
 )
 from src.modules.chat.models import TripSessionState
 from src.modules.chat.repository import SessionRepository
-from src.modules.llm.types import LlmUnavailable
-from src.ports import AuthPort, LlmGateway, ObsPort
+from src.ports import AuthPort, ObsPort
 
 CancelCheck = Callable[[], Awaitable[bool]]
 
 
 class SessionAccessError(Exception):
     """Unknown or foreign session — map to 404 without leaking."""
+
+
+class HitlStateError(Exception):
+    """No pending HITL to resume."""
 
 
 @dataclass(frozen=True)
@@ -42,13 +46,13 @@ class ChatService:
         *,
         auth: AuthPort,
         sessions: SessionRepository,
-        llm: LlmGateway,
         obs: ObsPort,
+        dialogue: DialogueRunner,
     ) -> None:
         self._auth = auth
         self._sessions = sessions
-        self._llm = llm
         self._obs = obs
+        self._dialogue = dialogue
 
     def _principal_from_request(
         self, request: Request, response: Response | None = None
@@ -95,6 +99,29 @@ class ChatService:
                 ):
                     yield event
 
+    async def resume_hitl(
+        self,
+        request: Request,
+        session_id: str,
+        *,
+        choice_id: str | None = None,
+        text: str | None = None,
+    ) -> SessionProjection:
+        principal = self._auth.read_principal(request)
+        if principal is None:
+            raise SessionAccessError("unknown session")
+        state = await self._require_owned(session_id, principal)
+        hitl = state.hitl or {}
+        if hitl.get("status") != "pending":
+            raise HitlStateError("no pending hitl")
+
+        with self._obs.start_trace("chat.hitl_resume", session_id=session_id):
+            outcome = await self._dialogue.resume(
+                session_id, choice_id=choice_id, text=text
+            )
+            await self._apply_outcome(state, outcome)
+            return self._project(state)
+
     async def _send_message_inner(
         self,
         principal: GuestPrincipal,
@@ -112,26 +139,31 @@ class ChatService:
         if cancel_check is not None and await cancel_check():
             return
 
-        result = await self._llm.complete(
-            "dialogue",
-            [{"role": m["role"], "content": m["content"]} for m in messages],
-        )
+        # Dialogue graph only — never generate/catalog.
+        outcome = await self._dialogue.run_turn(session_id, text)
 
         if cancel_check is not None and await cancel_check():
             return
 
-        if isinstance(result, LlmUnavailable):
+        if outcome.status == "error" and outcome.error_code in {
+            "checkpoint_or_graph_error",
+            "checkpoint_unavailable",
+        }:
             yield SseEvent(
                 event="error",
                 data={
-                    "code": "llm_unavailable",
-                    "message": "Dialogue model is unavailable. Your session is intact — try again later.",
+                    "code": outcome.error_code or "dialogue_error",
+                    "message": outcome.assistant_message,
                 },
             )
             return
 
-        content = _dialogue_text(result)
-        # Stream in small chunks for SSE token events.
+        await self._apply_outcome(state, outcome)
+
+        if outcome.status == "hitl" and outcome.hitl:
+            yield SseEvent(event="hitl", data=outcome.hitl)
+
+        content = outcome.assistant_message or ""
         chunk_size = 24
         for i in range(0, len(content), chunk_size):
             if cancel_check is not None and await cancel_check():
@@ -141,10 +173,34 @@ class ChatService:
         if cancel_check is not None and await cancel_check():
             return
 
-        messages.append({"role": "assistant", "content": content})
-        state.messages = messages
-        await self._sessions.save(state)
         yield SseEvent(event="message", data={"role": "assistant", "content": content})
+
+    async def _apply_outcome(
+        self, state: TripSessionState, outcome: DialogueOutcome
+    ) -> None:
+        messages = list(state.messages or [])
+        if outcome.assistant_message:
+            messages.append(
+                {"role": "assistant", "content": outcome.assistant_message}
+            )
+        state.messages = messages
+
+        if outcome.intent is not None:
+            state.intent = outcome.intent
+
+        if outcome.status == "hitl":
+            state.hitl = outcome.hitl
+            # Do not persist trip_scope while waiting.
+        elif outcome.status == "confirmed":
+            state.trip_scope = outcome.trip_scope
+            state.hitl = outcome.hitl or {"status": "resolved"}
+        elif outcome.status == "ask":
+            # Clarification — do not write trip_scope from this turn.
+            state.hitl = None
+        elif outcome.status == "error":
+            pass
+
+        await self._sessions.save(state)
 
     async def _require_owned(
         self, session_id: str, principal: GuestPrincipal
@@ -166,13 +222,3 @@ class ChatService:
             hitl=state.hitl,
             trip_scope=state.trip_scope,
         )
-
-
-def _dialogue_text(result: Any) -> str:
-    if isinstance(result, str):
-        return result
-    if isinstance(result, dict) and "content" in result:
-        return str(result["content"])
-    if hasattr(result, "content"):
-        return str(result.content)
-    return str(result)

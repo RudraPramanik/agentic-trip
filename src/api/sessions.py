@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_session
 from src.modules.chat import (
     ChatService,
+    HitlChoiceRequest,
+    HitlStateError,
     SendMessageRequest,
     SessionAccessError,
     SqlSessionRepository,
@@ -23,8 +25,8 @@ def get_chat_service(
     return ChatService(
         auth=request.app.state.auth_port,
         sessions=SqlSessionRepository(db),
-        llm=request.app.state.llm_gateway,
         obs=request.app.state.obs_port,
+        dialogue=request.app.state.dialogue_runner,
     )
 
 
@@ -82,3 +84,25 @@ async def send_message(
             ).encode()
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/sessions/{session_id}/hitl")
+async def resume_hitl(
+    session_id: str,
+    body: HitlChoiceRequest,
+    request: Request,
+    chat: ChatService = Depends(get_chat_service),
+) -> dict:
+    _ = body.user_id
+    try:
+        projection = await chat.resume_hitl(
+            request,
+            session_id,
+            choice_id=body.choice_id,
+            text=body.text,
+        )
+    except SessionAccessError:
+        raise HTTPException(status_code=404, detail="session not found") from None
+    except HitlStateError:
+        raise HTTPException(status_code=409, detail="no pending hitl") from None
+    return projection.model_dump()

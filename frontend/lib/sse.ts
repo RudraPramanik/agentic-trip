@@ -11,13 +11,52 @@ export async function postMessage(
   });
 }
 
+export async function postHitlChoice(
+  apiBase: string,
+  sessionId: string,
+  choiceId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}/hitl`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ choice_id: choiceId }),
+  });
+}
+
+export async function getSession(
+  apiBase: string,
+  sessionId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}`, {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
+export type HitlCandidate = {
+  choice_id?: string;
+  geo_id?: string;
+  label?: string;
+  display_name?: string;
+  name?: string;
+};
+
+export type HitlPayload = {
+  kind?: string;
+  status?: string;
+  prompt?: string;
+  candidates?: HitlCandidate[];
+};
+
 export type SseHandlers = {
   onToken?: (text: string) => void;
   onMessage?: (content: string) => void;
   onError?: (message: string) => void;
+  onHitl?: (hitl: HitlPayload) => void;
 };
 
-/** Read a fetch Response body as SSE (`token` | `message` | `error`). */
+/** Read a fetch Response body as SSE (`token` | `message` | `error` | `hitl`). */
 export async function readSse(
   response: Response,
   handlers: SseHandlers,
@@ -48,13 +87,15 @@ export async function readSse(
         }
       }
       if (!dataLine) continue;
-      const data = JSON.parse(dataLine) as Record<string, string>;
+      const data = JSON.parse(dataLine) as Record<string, unknown>;
       if (eventName === "token") {
-        handlers.onToken?.(data.text ?? "");
+        handlers.onToken?.(String(data.text ?? ""));
       } else if (eventName === "message") {
-        handlers.onMessage?.(data.content ?? "");
+        handlers.onMessage?.(String(data.content ?? ""));
       } else if (eventName === "error") {
-        handlers.onError?.(data.message ?? "error");
+        handlers.onError?.(String(data.message ?? "error"));
+      } else if (eventName === "hitl") {
+        handlers.onHitl?.(data as HitlPayload);
       }
     }
   }

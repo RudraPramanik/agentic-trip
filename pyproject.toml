@@ -12,6 +12,10 @@ dependencies = [
     "alembic>=1.14.0",
     "structlog>=24.4.0",
     "httpx>=0.28.0",
+    "litellm>=1.100.1",
+    "langgraph>=1.2.11",
+    "langgraph-checkpoint-postgres>=3.1.2",
+    "psycopg[binary]>=3.3.5",
 ]
 
 [dependency-groups]
@@ -31,3 +35,4 @@ include = ["src*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,6 +1,6 @@
 # P2 Dialogue + TripScope + HITL — blueprint
 
-> Status: planning blueprint (implement via later OpenSpec `p2-dialogue-scope`).  
+> Status: implementing via OpenSpec `p2-dialogue-scope` (P2.1–P2.9).  
 > LLD: [`../../llm.md`](../../llm.md) §7.2, §8
 
 ## Goal

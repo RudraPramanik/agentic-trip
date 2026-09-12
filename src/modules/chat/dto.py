@@ -13,6 +13,12 @@ class SendMessageRequest(BaseModel):
     user_id: str | None = None  # ignored — never trust client-supplied identity
 
 
+class HitlChoiceRequest(BaseModel):
+    choice_id: str | None = None
+    text: str | None = None
+    user_id: str | None = None  # ignored — never trust client-supplied identity
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str

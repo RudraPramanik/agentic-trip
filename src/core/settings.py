@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     cors_allowed_origins: str = "http://localhost:3000"
     environment: str = "local"
+    nominatim_base_url: str = "https://nominatim.openstreetmap.org"
+    nominatim_user_agent: str = "agentic-trip/0.1 (local; contact: dev@localhost)"
+    nominatim_timeout_seconds: float = 5.0
+    dialogue_prefer_postgres_checkpointer: bool = False
 
     @property
     def cookie_secure(self) -> bool:
