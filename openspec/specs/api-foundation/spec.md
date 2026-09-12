@@ -48,16 +48,16 @@ The API process MUST start and serve health probes without Redis, without a back
 - **WHEN** a test imports each feature package with no vendor keys configured
 - **THEN** the import completes without network I/O and without raising due to missing optional keys
 
-### Requirement: Foundation slice does not expose later-phase product routes
+### Requirement: Product routes are phase-gated after foundation
 
-The HTTP API MUST NOT expose session, chat, catalog acquire, generate, trip, explore, or booking routes in this slice. Health probes are the only HTTP product surface. The API MUST NOT use Wandr `guideagent` paths.
+The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. After the chat slice ships, the API MAY expose dialogue session routes under `/api/v1/sessions` (create session, send message, get session). The API MUST NOT expose catalog acquire, generate, trip, explore, or booking product routes until those slices ship. The API MUST NOT use Wandr `guideagent` paths.
 
-#### Scenario: Session create is not a product route yet
+#### Scenario: Session create is a product route
 
 - **WHEN** a client sends `POST /api/v1/sessions`
-- **THEN** the API does not create a planning session or return a successful session payload
+- **THEN** the API can create a planning session and return a successful session payload with guest cookie semantics
 
-#### Scenario: Generate is not a product route yet
+#### Scenario: Generate remains non-product until its slice
 
 - **WHEN** a client sends `POST /api/v1/sessions/{id}/generate`
 - **THEN** the API does not start generate work or return a successful generate stream
