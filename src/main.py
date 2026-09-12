@@ -3,11 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from langgraph.checkpoint.memory import InMemorySaver
 
 from src.api.catalog import router as catalog_router
+from src.api.generate import router as generate_router
 from src.api.health import router as health_router
 from src.api.sessions import router as sessions_router
 from src.core.logging import configure_logging
 from src.core.settings import get_settings
 from src.modules.agents.dialogue import DialogueDeps, DialogueRunner, build_checkpointer
+from src.modules.agents.runner import InProcessGenerateRunner
 from src.modules.auth import CookieAuthAdapter
 from src.modules.catalog import (
     ArqAcquireQueue,
@@ -19,6 +21,7 @@ from src.modules.catalog import (
 from src.modules.geo import GeoService, NominatimAdapter
 from src.modules.llm.litellm_adapter import build_llm_gateway
 from src.modules.monitor import NoOpObs
+from src.modules.planner import GreedyTravelEngine
 
 
 def create_app() -> FastAPI:
@@ -83,9 +86,18 @@ def create_app() -> FastAPI:
         ),
         checkpointer=checkpointer,
     )
+    application.state.travel_engine = GreedyTravelEngine()
+    # deps_factory is bound per-request in the generate router (DB session scoped).
+    application.state.generate_runner = InProcessGenerateRunner(
+        deps_factory=lambda _session_id: (_ for _ in ()).throw(
+            RuntimeError("generate deps_factory not bound")
+        ),
+        timeout_seconds=settings.generate_timeout_seconds,
+    )
     application.include_router(health_router)
     application.include_router(sessions_router)
     application.include_router(catalog_router)
+    application.include_router(generate_router)
     return application
 
 

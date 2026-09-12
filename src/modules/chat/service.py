@@ -222,4 +222,6 @@ class ChatService:
             hitl=state.hitl,
             trip_scope=state.trip_scope,
             catalog=state.catalog,
+            itinerary=state.itinerary,
+            validation=state.validation,
         )

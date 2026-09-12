@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     places_user_agent: str = "agentic-trip/0.1 (local; contact: dev@localhost)"
     acquire_max_tries: int = 3
     catalog_enqueue_inline: bool = False
+    generate_timeout_seconds: float = 120.0
 
     @property
     def cookie_secure(self) -> bool:

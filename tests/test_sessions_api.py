@@ -119,10 +119,12 @@ def test_unknown_session_not_found() -> None:
     assert response.status_code == 404
 
 
-def test_generate_still_not_a_product_route() -> None:
+def test_generate_route_requires_owned_session() -> None:
     client, _, _ = _client_with_service()
     response = client.post("/api/v1/sessions/demo/generate")
-    assert response.status_code in {404, 405}
+    assert response.status_code == 404
+    paths = create_app().openapi()["paths"]
+    assert "/api/v1/sessions/{session_id}/generate" in paths
 
 
 def test_hitl_resume_api_sets_trip_scope() -> None:

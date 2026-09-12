@@ -53,11 +53,15 @@ async def test_ready_live_database() -> None:
     assert response.json() == {"status": "ok", "db": True}
 
 
-def test_generate_is_not_a_product_route() -> None:
+def test_generate_is_a_product_route() -> None:
+    """Generate is mounted; unauthenticated / unknown session returns 404, not missing route."""
     response = _client(db_ok=True).post("/api/v1/sessions/demo/generate")
-    assert response.status_code in {404, 405}
+    assert response.status_code == 404
+    paths = create_app().openapi()["paths"]
+    assert "/api/v1/sessions/{session_id}/generate" in paths
+    assert "/api/v1/sessions/{session_id}/generate/abort" in paths
 
 
 def test_no_guideagent_paths() -> None:
-    paths = [getattr(route, "path", "") for route in create_app().routes]
+    paths = list(create_app().openapi()["paths"])
     assert all("guideagent" not in path.lower() for path in paths)

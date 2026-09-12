@@ -56,11 +56,37 @@ export async function postCatalogAcquire(
   });
 }
 
+export async function postGenerate(
+  apiBase: string,
+  sessionId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}/generate`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+export async function postGenerateAbort(
+  apiBase: string,
+  sessionId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}/generate/abort`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
 export type CatalogReadiness = {
   ready?: boolean;
   status?: string;
   place_count?: number | null;
   error?: string | null;
+};
+
+export type DraftItinerary = {
+  status?: string;
+  days?: { day_index?: number; stops?: { place_id?: string; name?: string }[] }[];
+  place_ids?: string[];
 };
 
 export type HitlCandidate = {
@@ -83,9 +109,12 @@ export type SseHandlers = {
   onMessage?: (content: string) => void;
   onError?: (message: string) => void;
   onHitl?: (hitl: HitlPayload) => void;
+  onProgress?: (stage: string, data: Record<string, unknown>) => void;
+  onDone?: (data: Record<string, unknown>) => void;
+  onAborted?: (reason: string) => void;
 };
 
-/** Read a fetch Response body as SSE (`token` | `message` | `error` | `hitl`). */
+/** Read a fetch Response body as SSE (`token` | `message` | `error` | `hitl` | generate events). */
 export async function readSse(
   response: Response,
   handlers: SseHandlers,
@@ -122,9 +151,15 @@ export async function readSse(
       } else if (eventName === "message") {
         handlers.onMessage?.(String(data.content ?? ""));
       } else if (eventName === "error") {
-        handlers.onError?.(String(data.message ?? "error"));
+        handlers.onError?.(String(data.message ?? data.code ?? "error"));
       } else if (eventName === "hitl") {
         handlers.onHitl?.(data as HitlPayload);
+      } else if (eventName === "progress") {
+        handlers.onProgress?.(String(data.stage ?? ""), data);
+      } else if (eventName === "done") {
+        handlers.onDone?.(data);
+      } else if (eventName === "aborted") {
+        handlers.onAborted?.(String(data.reason ?? "aborted"));
       }
     }
   }

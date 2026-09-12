@@ -18,7 +18,7 @@ The system MUST map each external dependency kind to a named fallback. Supported
 #### Scenario: Retrieve empty
 
 - **WHEN** place retrieve returns no catalog matches inside the resolved scope
-- **THEN** the system uses an in-scope geo fallback if available, otherwise reports honest emptiness and HITL, and does not schedule invented venues
+- **THEN** the system reports honest emptiness (v1 retrieve is PostGIS bbox/tags only; a later vector index MAY add geo-fallback when empty/down) and does not schedule invented venues
 
 #### Scenario: Routing geometry missing
 
@@ -29,6 +29,16 @@ The system MUST map each external dependency kind to a named fallback. Supported
 
 - **WHEN** a generate run exceeds its wall-clock timeout
 - **THEN** remaining generate work stops, no successful trip is persisted from that run, and the outcome is recorded as timeout or aborted — not as a successful plan
+
+#### Scenario: Places provider down during acquire
+
+- **WHEN** Overpass/OTM-class places providers time out or error during catalog acquire
+- **THEN** acquire records empty or partial progress with honest readiness and does not invent POIs or scrape a country centroid
+
+#### Scenario: Thin catalog without foreign refill
+
+- **WHEN** acquire yields a thin in-scope catalog
+- **THEN** the system keeps honest readiness and does not refill with foreign-country POIs
 
 ### Requirement: Observability and workers fail soft
 
@@ -172,3 +182,17 @@ When session persistence cannot proceed because the product schema is missing or
 
 - **WHEN** a client calls `POST /api/v1/sessions` and the configured database has no session table
 - **THEN** the API does not return a successful session payload and the error is an honest failure rather than an untyped internal crash with no problem body
+
+### Requirement: Catalog acquire and retrieve stay honest under worker failure
+
+When the catalog acquire background job fails after bounded retries, or Redis/worker is unavailable, the system MUST record a failed or honest readiness outcome visible to the owning guest. Empty retrieve MUST remain an honest empty result. Neither path MUST invent venues, coordinates, or foreign fill.
+
+#### Scenario: Background acquire fails with visible status
+
+- **WHEN** a bounded catalog acquire job fails after retries
+- **THEN** session catalog readiness reports failed (or equivalent) and the user is not left in an unbounded wait without status
+
+#### Scenario: Empty retrieve does not invent places
+
+- **WHEN** retrieve finds no in-scope matches after acquire or without prior acquire
+- **THEN** the result is typed empty and no fabricated places are returned

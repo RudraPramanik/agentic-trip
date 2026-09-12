@@ -4,11 +4,14 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import {
   CatalogReadiness,
+  DraftItinerary,
   HitlCandidate,
   HitlPayload,
   getCatalog,
   getSession,
   postCatalogAcquire,
+  postGenerate,
+  postGenerateAbort,
   postHitlChoice,
   postMessage,
   readSse,
@@ -39,6 +42,10 @@ export default function ChatShell() {
     name?: string;
   } | null>(null);
   const [catalog, setCatalog] = useState<CatalogReadiness | null>(null);
+  const [draft, setDraft] = useState<DraftItinerary | null>(null);
+  const [generateBusy, setGenerateBusy] = useState(false);
+  const [generateStage, setGenerateStage] = useState<string | null>(null);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +82,7 @@ export default function ChatShell() {
       hitl?: HitlPayload | null;
       trip_scope?: { kind?: string; name?: string } | null;
       catalog?: CatalogReadiness | null;
+      itinerary?: DraftItinerary | null;
     };
     if (body.messages) {
       setLines(
@@ -91,12 +99,19 @@ export default function ChatShell() {
     if (body.catalog) {
       setCatalog(body.catalog);
     }
+    if (body.itinerary) {
+      setDraft(body.itinerary);
+    }
     if (body.trip_scope?.kind) {
       const cat = body.catalog?.status
         ? ` · catalog: ${body.catalog.status}`
         : "";
+      const draftNote =
+        body.itinerary?.status === "draft"
+          ? ` · draft: ${body.itinerary.days?.length ?? 0} days`
+          : "";
       setStatus(
-        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}${cat}`,
+        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}${cat}${draftNote}`,
       );
     } else if (pending) {
       setStatus(pending.prompt || "Pick a place to continue");
@@ -216,8 +231,66 @@ export default function ChatShell() {
     }
   }, [sessionId, busy, refreshSession]);
 
+  const onBuildPlan = useCallback(async () => {
+    if (!sessionId || busy || generateBusy) return;
+    setGenerateBusy(true);
+    setGenerateStage("starting");
+    setStatus("Building plan…");
+    try {
+      const response = await postGenerate(API_BASE, sessionId);
+      await readSse(response, {
+        onProgress: (stage) => {
+          setGenerateStage(stage);
+          setStatus(`Generating: ${stage}`);
+        },
+        onDone: () => {
+          setGenerateStage("done");
+          setStatus("Draft ready");
+        },
+        onAborted: (reason) => {
+          setGenerateStage(null);
+          setStatus(`Generate aborted: ${reason}`);
+          setLines((prev) => [
+            ...prev,
+            { role: "error", content: `Generate aborted: ${reason}` },
+          ]);
+        },
+        onError: (message) => {
+          setGenerateStage(null);
+          setStatus(`Generate failed: ${message}`);
+          setLines((prev) => [
+            ...prev,
+            { role: "error", content: `Generate failed: ${message}` },
+          ]);
+        },
+      });
+      await refreshSession(sessionId);
+    } catch (err) {
+      setLines((prev) => [
+        ...prev,
+        { role: "error", content: `Generate request failed: ${err}` },
+      ]);
+    } finally {
+      setGenerateBusy(false);
+    }
+  }, [sessionId, busy, generateBusy, refreshSession]);
+
+  const onAbortGenerate = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      await postGenerateAbort(API_BASE, sessionId);
+      setStatus("Abort requested…");
+    } catch (err) {
+      setLines((prev) => [
+        ...prev,
+        { role: "error", content: `Abort failed: ${err}` },
+      ]);
+    }
+  }, [sessionId]);
+
   const chips = hitl?.status === "pending" ? hitl.candidates ?? [] : [];
   const showAcquire = Boolean(tripScope?.kind) && !hitl;
+  const showBuildPlan = Boolean(tripScope?.kind) && !hitl;
 
   return (
     <main className="shell">
@@ -266,11 +339,39 @@ export default function ChatShell() {
             <button
               type="button"
               className="catalog-acquire"
-              disabled={busy}
+              disabled={busy || generateBusy}
               onClick={() => onAcquireCatalog()}
             >
               Acquire places
             </button>
+          </div>
+        ) : null}
+        {showBuildPlan ? (
+          <div className="generate-panel" role="group" aria-label="Build plan">
+            <p className="generate-status">
+              {draft?.status === "draft"
+                ? `Draft: ${draft.days?.length ?? 0} days · ${draft.place_ids?.length ?? 0} stops`
+                : generateStage
+                  ? `Generate: ${generateStage}`
+                  : "Ready to build a plan (does not start on chat send)"}
+            </p>
+            <button
+              type="button"
+              className="build-plan"
+              disabled={busy || generateBusy}
+              onClick={() => onBuildPlan()}
+            >
+              Build plan
+            </button>
+            {generateBusy ? (
+              <button
+                type="button"
+                className="generate-abort"
+                onClick={() => onAbortGenerate()}
+              >
+                Abort
+              </button>
+            ) : null}
           </div>
         ) : null}
       </section>
