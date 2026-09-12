@@ -6,23 +6,23 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 
 | ID | Proof |
 |----|--------|
-| P5.1 | [ ] GuidebookExport schema |
-| P5.2 | [ ] GET trip + export ASGI |
-| P5.3 | [ ] FE guidebook days (smoke) |
-| P5.4 | [ ] map points without fake polyline; v1 points-only unless later geometry exists |
-| P5.5 | [ ] empty booking UI no prices |
-| P5.6 | [ ] media not on generate path |
+| P5.1 | [x] GuidebookExport schema (`tests/test_trips.py`) |
+| P5.2 | [x] GET trip + export ASGI (`tests/test_trips_api.py`) |
+| P5.3 | [x] FE guidebook days (smoke notes in `frontend/GUIDEBOOK.md`) |
+| P5.4 | [x] map points without fake polyline; v1 points-only unless later geometry exists (`TripMap` + export omits `route_geometry`) |
+| P5.5 | [x] empty booking UI no prices (`BookingPlaceholder`) |
+| P5.6 | [x] media not on generate path (`tests/test_media_stub.py`) |
 
 ## Checks
 
-- [ ] export DTO schema test
-- [ ] map points without fake polyline
-- [ ] FE render smoke if applicable
+- [x] export DTO schema test
+- [x] map points without fake polyline
+- [x] FE render smoke if applicable (`frontend/GUIDEBOOK.md`)
 
 ## CI
 
-- [ ] Job or documented script runs these checks (introduce CI provider in p0 if missing)
-- [ ] Failures block merging/applying the next slice
+- [x] Job or documented script runs these checks (`.github/workflows/ci.yml` → `uv run pytest`)
+- [x] Failures block merging/applying the next slice
 
 ## Exit criteria
 

@@ -50,7 +50,7 @@ The API process MUST start and serve health probes without Redis, without a back
 
 ### Requirement: Product routes are phase-gated after foundation
 
-The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. After the chat and dialogue-scope slices ship, the API MAY expose dialogue session routes under `/api/v1/sessions` (create session, send message, get session, resume HITL). After the catalog slice ships, the API MUST expose catalog product routes `GET /api/v1/sessions/{id}/catalog` and `POST /api/v1/catalog/acquire`. The API MUST NOT expose generate, trip, explore, or booking product routes until those slices ship. The API MUST NOT use Wandr `guideagent` paths.
+The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. After the chat and dialogue-scope slices ship, the API MAY expose dialogue session routes under `/api/v1/sessions` (create session, send message, get session, resume HITL). After the catalog slice ships, the API MUST expose catalog product routes `GET /api/v1/sessions/{id}/catalog` and `POST /api/v1/catalog/acquire`. After the generate slice ships, the API MUST expose generate product routes `POST /api/v1/sessions/{id}/generate` and `POST /api/v1/sessions/{id}/generate/abort`. The API MUST NOT expose trip save, explore, or booking product routes until those slices ship. The API MUST NOT use Wandr `guideagent` paths.
 
 #### Scenario: Session create is a product route
 
@@ -74,8 +74,18 @@ The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. A
 
 #### Scenario: Generate remains non-product until its slice
 
-- **WHEN** a client sends `POST /api/v1/sessions/{id}/generate`
-- **THEN** the API does not start generate work or return a successful generate stream
+- **WHEN** a client sends `POST /api/v1/sessions/{id}/generate` for a session they own with confirmed trip_scope after the generate slice ships
+- **THEN** the API can start in-process generate and return an SSE stream with progress and a terminal done, error, or aborted outcome without using Wandr paths
+
+#### Scenario: Generate abort is a product route
+
+- **WHEN** a client sends `POST /api/v1/sessions/{id}/generate/abort` for a session they own with generate in progress
+- **THEN** the API records abort requested and does not continue unbounded generate spend for that run
+
+#### Scenario: Explore and booking remain non-product until their slices
+
+- **WHEN** a client sends explore or booking product routes before those slices ship
+- **THEN** the API does not treat those routes as shipped product behavior for this foundation contract
 
 ### Requirement: Acquire needs Redis and worker; API liveness does not
 
@@ -90,6 +100,15 @@ The API process MUST still start and serve `GET /health` without Redis or a back
 
 - **WHEN** a client enqueues catalog acquire and the job queue or worker cannot run the job
 - **THEN** catalog readiness becomes failed (or enqueue returns an honest failure) and the client is not left without status
+
+### Requirement: Generate does not require Redis
+
+In-process generate and generate abort MUST run without depending on Redis or a background worker. API liveness MUST remain independent of Redis. Catalog acquire MAY still require Redis/worker as before.
+
+#### Scenario: Generate without Redis
+
+- **WHEN** Redis is not running and an owning guest starts generate for a session with confirmed trip_scope and usable catalog fixtures/fakes
+- **THEN** generate can still proceed on the in-process runner path (or fail for non-Redis product reasons) and MUST NOT fail solely because Redis is down
 
 ### Requirement: Pending schema revisions apply before the API serves product routes
 

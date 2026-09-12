@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     llm_api_key: str | None = None
+    llm_model: str = "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b"
+    llm_api_base: str | None = None
+    llm_model_fallbacks: str | None = None
+    gemini_api_key: str | None = None
+    embedding_model: str = "gemini/gemini-embedding-2"
     cors_allowed_origins: str = "http://localhost:3000"
     environment: str = "local"
     nominatim_base_url: str = "https://nominatim.openstreetmap.org"

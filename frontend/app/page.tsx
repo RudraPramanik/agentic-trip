@@ -1,14 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
+import { GuidebookView } from "@/components/guidebook-view";
 import {
   CatalogReadiness,
   DraftItinerary,
+  GuidebookExport,
   HitlCandidate,
   HitlPayload,
   getCatalog,
   getSession,
+  getTripExport,
   postCatalogAcquire,
   postGenerate,
   postGenerateAbort,
@@ -16,6 +20,11 @@ import {
   postMessage,
   readSse,
 } from "@/lib/sse";
+
+const TripMap = dynamic(
+  () => import("@/components/trip-map").then((m) => m.TripMap),
+  { ssr: false },
+);
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
@@ -43,9 +52,12 @@ export default function ChatShell() {
   } | null>(null);
   const [catalog, setCatalog] = useState<CatalogReadiness | null>(null);
   const [draft, setDraft] = useState<DraftItinerary | null>(null);
+  const [tripId, setTripId] = useState<string | null>(null);
+  const [guidebook, setGuidebook] = useState<GuidebookExport | null>(null);
+  const [showGuidebook, setShowGuidebook] = useState(false);
+  const [mapFailed, setMapFailed] = useState(false);
   const [generateBusy, setGenerateBusy] = useState(false);
   const [generateStage, setGenerateStage] = useState<string | null>(null);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +86,15 @@ export default function ChatShell() {
     };
   }, []);
 
+  const loadGuidebook = useCallback(async (id: string) => {
+    const res = await getTripExport(API_BASE, id);
+    if (!res.ok) return;
+    const body = (await res.json()) as GuidebookExport;
+    setGuidebook(body);
+    setMapFailed(false);
+    setShowGuidebook(true);
+  }, []);
+
   const refreshSession = useCallback(async (id: string) => {
     const res = await getSession(API_BASE, id);
     if (!res.ok) return;
@@ -83,6 +104,7 @@ export default function ChatShell() {
       trip_scope?: { kind?: string; name?: string } | null;
       catalog?: CatalogReadiness | null;
       itinerary?: DraftItinerary | null;
+      trip_id?: string | null;
     };
     if (body.messages) {
       setLines(
@@ -102,6 +124,9 @@ export default function ChatShell() {
     if (body.itinerary) {
       setDraft(body.itinerary);
     }
+    if (body.trip_id) {
+      setTripId(body.trip_id);
+    }
     if (body.trip_scope?.kind) {
       const cat = body.catalog?.status
         ? ` · catalog: ${body.catalog.status}`
@@ -110,8 +135,9 @@ export default function ChatShell() {
         body.itinerary?.status === "draft"
           ? ` · draft: ${body.itinerary.days?.length ?? 0} days`
           : "";
+      const tripNote = body.trip_id ? ` · trip: ${body.trip_id.slice(0, 8)}…` : "";
       setStatus(
-        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}${cat}${draftNote}`,
+        `Scope locked: ${body.trip_scope.kind} — ${body.trip_scope.name ?? ""}${cat}${draftNote}${tripNote}`,
       );
     } else if (pending) {
       setStatus(pending.prompt || "Pick a place to continue");
@@ -243,9 +269,13 @@ export default function ChatShell() {
           setGenerateStage(stage);
           setStatus(`Generating: ${stage}`);
         },
-        onDone: () => {
+        onDone: (data) => {
           setGenerateStage("done");
           setStatus("Draft ready");
+          const tid = typeof data.trip_id === "string" ? data.trip_id : null;
+          if (tid) {
+            setTripId(tid);
+          }
         },
         onAborted: (reason) => {
           setGenerateStage(null);
@@ -291,6 +321,7 @@ export default function ChatShell() {
   const chips = hitl?.status === "pending" ? hitl.candidates ?? [] : [];
   const showAcquire = Boolean(tripScope?.kind) && !hitl;
   const showBuildPlan = Boolean(tripScope?.kind) && !hitl;
+  const canOpenGuidebook = Boolean(tripId) && draft?.status === "draft";
 
   return (
     <main className="shell">
@@ -372,7 +403,35 @@ export default function ChatShell() {
                 Abort
               </button>
             ) : null}
+            {canOpenGuidebook ? (
+              <button
+                type="button"
+                className="open-guidebook"
+                disabled={busy}
+                onClick={() => tripId && loadGuidebook(tripId)}
+              >
+                Open guidebook
+              </button>
+            ) : null}
           </div>
+        ) : null}
+        {showGuidebook && guidebook ? (
+          <GuidebookView
+            exportData={guidebook}
+            mapSlot={
+              mapFailed ? undefined : (
+                <TripMap
+                  exportData={guidebook}
+                  onStyleFail={() => setMapFailed(true)}
+                />
+              )
+            }
+          />
+        ) : null}
+        {showGuidebook && mapFailed ? (
+          <p className="map-fallback" role="status">
+            Map unavailable — guidebook list remains usable.
+          </p>
         ) : null}
       </section>
       <form onSubmit={onSubmit}>

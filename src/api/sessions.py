@@ -15,6 +15,8 @@ from src.modules.chat import (
     SqlSessionRepository,
 )
 from src.modules.chat.service import SseEvent
+from src.modules.trips import TripService
+from src.modules.trips.repository import SqlTripRepository
 
 router = APIRouter(prefix="/api/v1")
 
@@ -28,11 +30,13 @@ def get_chat_service(
     request: Request,
     db: AsyncSession = Depends(get_session),
 ) -> ChatService:
+    sessions = SqlSessionRepository(db)
     return ChatService(
         auth=request.app.state.auth_port,
-        sessions=SqlSessionRepository(db),
+        sessions=sessions,
         obs=request.app.state.obs_port,
         dialogue=request.app.state.dialogue_runner,
+        trips=TripService(sessions, SqlTripRepository(db)),
     )
 
 

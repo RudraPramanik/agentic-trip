@@ -33,3 +33,4 @@ class SessionProjection(BaseModel):
     catalog: dict[str, Any] | None = None
     itinerary: dict[str, Any] | None = None
     validation: dict[str, Any] | None = None
+    trip_id: str | None = None

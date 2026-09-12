@@ -120,13 +120,16 @@ class InProcessGenerateRunner(GenerateRunner):
                 result.reason = "timeout"
             run.result = result
             if result.status == "done":
+                done_data: dict[str, Any] = {
+                    "itinerary": result.itinerary,
+                    "validation": result.validation,
+                }
+                if result.trip_id:
+                    done_data["trip_id"] = result.trip_id
                 await run.queue.put(
                     SseEvent(
                         event="done",
-                        data={
-                            "itinerary": result.itinerary,
-                            "validation": result.validation,
-                        },
+                        data=done_data,
                     )
                 )
             elif result.status == "aborted":

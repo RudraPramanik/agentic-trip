@@ -10,6 +10,7 @@ from src.db.base import Base
 # Register ORM models on metadata for Alembic.
 from src.modules.catalog.models import Place as _Place  # noqa: F401
 from src.modules.chat.models import TripSessionState as _TripSessionState  # noqa: F401
+from src.modules.trips.models import TripArtifact as _TripArtifact  # noqa: F401
 
 config = context.config
 

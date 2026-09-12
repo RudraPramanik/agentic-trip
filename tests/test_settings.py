@@ -17,6 +17,8 @@ def test_missing_langfuse_keys_are_optional(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://at:at@localhost:5432/at")
     monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     get_settings.cache_clear()
     settings = Settings(_env_file=None)
     assert settings.database_url

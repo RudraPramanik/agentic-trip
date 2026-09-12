@@ -6,6 +6,8 @@ from src.api.catalog import router as catalog_router
 from src.api.generate import router as generate_router
 from src.api.health import router as health_router
 from src.api.sessions import router as sessions_router
+from src.api.trips import router as trips_router
+from src.modules.media import StubMediaProvider
 from src.core.logging import configure_logging
 from src.core.settings import get_settings
 from src.modules.agents.dialogue import DialogueDeps, DialogueRunner, build_checkpointer
@@ -43,9 +45,14 @@ def create_app() -> FastAPI:
     application.state.auth_port = CookieAuthAdapter()
     application.state.llm_gateway = build_llm_gateway(
         api_key=settings.llm_api_key,
+        model=settings.llm_model,
+        api_base=settings.llm_api_base,
+        embedding_model=settings.embedding_model,
         dialogue_stub_fallback=False,
     )
     application.state.obs_port = NoOpObs()
+    # Media stub registered for later enrich — never wired into generate.
+    application.state.media_provider = StubMediaProvider()
     application.state.geo_gateway = NominatimAdapter(
         base_url=settings.nominatim_base_url,
         user_agent=settings.nominatim_user_agent,
@@ -98,6 +105,7 @@ def create_app() -> FastAPI:
     application.include_router(sessions_router)
     application.include_router(catalog_router)
     application.include_router(generate_router)
+    application.include_router(trips_router)
     return application
 
 

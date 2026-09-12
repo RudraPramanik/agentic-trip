@@ -24,6 +24,7 @@ class GenerateResult:
     status: str  # done | error | aborted
     itinerary: dict[str, Any] | None = None
     validation: dict[str, Any] | None = None
+    trip_id: str | None = None
     error: str | None = None
     reason: str | None = None
 
@@ -146,7 +147,7 @@ async def run_generate(
 
             with deps.obs.span("generate.persist", session_id=session_id):
                 try:
-                    await deps.trips.persist_draft(
+                    saved = await deps.trips.persist_draft(
                         session_id, itinerary, validation, aborted=False
                     )
                 except TripPersistError as exc:
@@ -163,6 +164,7 @@ async def run_generate(
                 status="done",
                 itinerary=itinerary.to_dict(),
                 validation=validation.to_dict(),
+                trip_id=saved.trip_id,
             )
         except Exception as exc:  # honest fail; still traced via outer span
             with deps.obs.span("generate.outcome", status="error", error=type(exc).__name__):

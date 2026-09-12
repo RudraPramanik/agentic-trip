@@ -15,10 +15,12 @@ class LiteLlmAdapter(LlmGateway):
         *,
         api_key: str | None,
         model: str = "gpt-4o-mini",
+        api_base: str | None = None,
         role_models: dict[str, str] | None = None,
     ) -> None:
         self._api_key = (api_key or "").strip() or None
         self._default_model = model
+        self._api_base = (api_base or "").strip() or None
         self._role_models = role_models or {
             "dialogue": model,
             "narrative": model,
@@ -46,6 +48,8 @@ class LiteLlmAdapter(LlmGateway):
             "messages": messages,
             "api_key": self._api_key,
         }
+        if self._api_base:
+            kwargs["api_base"] = self._api_base
         if schema is not None:
             kwargs["response_format"] = {
                 "type": "json_schema",
@@ -87,14 +91,32 @@ class LiteLlmAdapter(LlmGateway):
 def build_llm_gateway(
     *,
     api_key: str | None,
+    model: str = "gpt-4o-mini",
+    api_base: str | None = None,
+    embedding_model: str | None = None,
     dialogue_stub_fallback: bool = True,
 ) -> LlmGateway:
     """Composition helper: live adapter when keyed; else local dialogue stub."""
     key = (api_key or "").strip() or None
+    role_models = {
+        "dialogue": model,
+        "narrative": model,
+        "embed": embedding_model or "text-embedding-3-small",
+    }
     if key:
-        return LiteLlmAdapter(api_key=key)
+        return LiteLlmAdapter(
+            api_key=key,
+            model=model,
+            api_base=api_base,
+            role_models=role_models,
+        )
     if dialogue_stub_fallback:
         from src.modules.llm.dialogue_stub import LocalDialogueStub
 
         return LocalDialogueStub()
-    return LiteLlmAdapter(api_key=None)
+    return LiteLlmAdapter(
+        api_key=None,
+        model=model,
+        api_base=api_base,
+        role_models=role_models,
+    )

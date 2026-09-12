@@ -19,12 +19,18 @@ class CookieAuthAdapter(AuthPort):
     """Guest identity via httpOnly cookie. Never trust client-supplied user_id."""
 
     def set_guest_cookie(self, response: Response, guest_id: str) -> None:
+        from src.core.settings import get_settings
+
+        try:
+            secure = get_settings().cookie_secure
+        except Exception:
+            secure = os.environ.get("ENVIRONMENT", "local") != "local"
         response.set_cookie(
             GUEST_COOKIE_NAME,
             guest_id,
             httponly=True,
             samesite="lax",
-            secure=os.environ.get("ENVIRONMENT", "local") != "local",
+            secure=secure,
         )
 
     def issue_guest(self, response: Response) -> GuestPrincipal:

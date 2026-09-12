@@ -19,6 +19,7 @@ from src.modules.chat import SqlSessionRepository
 from src.modules.chat.service import SessionAccessError, SseEvent
 from src.modules.planner import GreedyTravelEngine
 from src.modules.trips import TripService
+from src.modules.trips.repository import SqlTripRepository
 from src.ports import AuthPort
 
 router = APIRouter(prefix="/api/v1")
@@ -60,7 +61,7 @@ def _build_deps_factory(request: Request, db: AsyncSession):
             queue=queue,
             obs=request.app.state.obs_port,
         )
-        trips = TripService(sessions)
+        trips = TripService(sessions, SqlTripRepository(db))
         engine = getattr(request.app.state, "travel_engine", None) or GreedyTravelEngine()
 
         async def sessions_get(sid: str):

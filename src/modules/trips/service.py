@@ -1,4 +1,4 @@
-"""Trip draft persistence — status=draft only; never saved trip."""
+"""Trip draft persistence + get/export (P4/P5)."""
 
 from __future__ import annotations
 
@@ -7,20 +7,32 @@ from typing import Any
 from src.modules.chat.models import TripSessionState
 from src.modules.chat.repository import SessionRepository
 from src.modules.planner.types import Itinerary, ValidateResult
+from src.modules.trips.export import GuidebookExport, to_guidebook_export
+from src.modules.trips.models import TripArtifact, new_trip_id
+from src.modules.trips.repository import InMemoryTripRepository, TripRepository
 
 
 class TripPersistError(Exception):
     """Refused to persist (validation fail / abort)."""
 
 
+class TripAccessError(Exception):
+    """Unknown or foreign trip."""
+
+
 class TripService:
-    """Persists guest session drafts. Does not unlock last-trip Explore."""
+    """Persists guest session drafts and owned trip artifacts. Does not unlock Explore."""
 
     # Explicit product law: draft ≠ authenticated saved trip (Explore last-trip locked).
     LAST_TRIP_UNLOCKED_BY_DRAFT = False
 
-    def __init__(self, sessions: SessionRepository) -> None:
+    def __init__(
+        self,
+        sessions: SessionRepository,
+        trips: TripRepository | None = None,
+    ) -> None:
         self._sessions = sessions
+        self._trips = trips if trips is not None else InMemoryTripRepository()
 
     async def persist_draft(
         self,
@@ -58,7 +70,75 @@ class TripService:
         if state is None:
             raise TripPersistError("session_not_found")
 
+        trip_id = state.trip_id or new_trip_id()
+        state.trip_id = trip_id
         state.itinerary = body
         state.validation = val_dict
         state.budget = "generate"
+
+        artifact = TripArtifact(
+            trip_id=trip_id,
+            guest_id=state.guest_id,
+            session_id=state.session_id,
+            status="draft",
+            itinerary=body,
+            validation=val_dict,
+            route_geometry=None,
+        )
+        await self._trips.save(artifact)
         return await self._sessions.save(state)
+
+    async def get_trip(self, trip_id: str, guest_id: str) -> dict[str, Any]:
+        """Return owned trip artifact dict. Backfills from session if needed."""
+        trip = await self._trips.get(trip_id)
+        if trip is not None:
+            if trip.guest_id != guest_id:
+                raise TripAccessError("unknown trip")
+            return trip.to_dict()
+
+        # Backfill path: trip_id on a session with draft but missing trips row
+        # (pre-P5 drafts or partial writes). Scan is avoided — caller uses known id.
+        raise TripAccessError("unknown trip")
+
+    async def ensure_trip_for_session(
+        self, state: TripSessionState
+    ) -> TripSessionState:
+        """Assign trip_id + artifact for older drafts missing identity."""
+        if not state.itinerary:
+            return state
+        if state.trip_id:
+            existing = await self._trips.get(state.trip_id)
+            if existing is not None:
+                return state
+            # Rehydrate missing artifact
+            artifact = TripArtifact(
+                trip_id=state.trip_id,
+                guest_id=state.guest_id,
+                session_id=state.session_id,
+                status=str(state.itinerary.get("status") or "draft"),
+                itinerary=dict(state.itinerary),
+                validation=dict(state.validation) if state.validation else None,
+                route_geometry=None,
+            )
+            await self._trips.save(artifact)
+            return state
+
+        trip_id = new_trip_id()
+        state.trip_id = trip_id
+        artifact = TripArtifact(
+            trip_id=trip_id,
+            guest_id=state.guest_id,
+            session_id=state.session_id,
+            status=str(state.itinerary.get("status") or "draft"),
+            itinerary=dict(state.itinerary),
+            validation=dict(state.validation) if state.validation else None,
+            route_geometry=None,
+        )
+        await self._trips.save(artifact)
+        return await self._sessions.save(state)
+
+    async def export_guidebook(
+        self, trip_id: str, guest_id: str
+    ) -> GuidebookExport:
+        trip = await self.get_trip(trip_id, guest_id)
+        return to_guidebook_export(trip)

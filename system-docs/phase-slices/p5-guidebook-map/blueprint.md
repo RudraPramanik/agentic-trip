@@ -1,6 +1,6 @@
 # P5 Guidebook UI + map + export DTO — blueprint
 
-> Status: planning blueprint (implement via later OpenSpec `p5-guidebook-map`).  
+> Status: implemented via OpenSpec `p5-guidebook-map` (GuidebookExport, trip get/export, FE guidebook + MapLibre points, hollow booking, media stub).
 > LLD: [`../../llm.md`](../../llm.md) §5, §6
 
 ## Goal

@@ -76,6 +76,26 @@ export async function postGenerateAbort(
   });
 }
 
+export async function getTrip(
+  apiBase: string,
+  tripId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/trips/${tripId}`, {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
+export async function getTripExport(
+  apiBase: string,
+  tripId: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/trips/${tripId}/export`, {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
 export type CatalogReadiness = {
   ready?: boolean;
   status?: string;
@@ -87,6 +107,40 @@ export type DraftItinerary = {
   status?: string;
   days?: { day_index?: number; stops?: { place_id?: string; name?: string }[] }[];
   place_ids?: string[];
+};
+
+export type GuidebookExport = {
+  trip_id?: string;
+  cover?: {
+    title?: string;
+    status?: string;
+    day_count?: number;
+    stop_count?: number;
+    hubs?: string[];
+  };
+  hubs?: string[];
+  days?: {
+    day_index?: number;
+    title?: string | null;
+    story?: string | null;
+    hub_id?: string | null;
+    stops?: {
+      place_id?: string;
+      name?: string;
+      lon?: number | null;
+      lat?: number | null;
+      title?: string | null;
+    }[];
+  }[];
+  narratives?: { day_index?: number; title?: string | null; story?: string | null }[];
+  map_points?: {
+    place_id?: string;
+    name?: string;
+    lon?: number;
+    lat?: number;
+    day_index?: number;
+  }[];
+  route_geometry?: unknown[];
 };
 
 export type HitlCandidate = {

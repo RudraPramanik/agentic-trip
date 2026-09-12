@@ -48,11 +48,13 @@ class ChatService:
         sessions: SessionRepository,
         obs: ObsPort,
         dialogue: DialogueRunner,
+        trips: Any | None = None,
     ) -> None:
         self._auth = auth
         self._sessions = sessions
         self._obs = obs
         self._dialogue = dialogue
+        self._trips = trips
 
     def _principal_from_request(
         self, request: Request, response: Response | None = None
@@ -78,6 +80,8 @@ class ChatService:
         if principal is None:
             raise SessionAccessError("unknown session")
         state = await self._require_owned(session_id, principal)
+        if self._trips is not None and state.itinerary:
+            state = await self._trips.ensure_trip_for_session(state)
         return self._project(state)
 
     async def send_message(
@@ -224,4 +228,5 @@ class ChatService:
             catalog=state.catalog,
             itinerary=state.itinerary,
             validation=state.validation,
+            trip_id=state.trip_id,
         )

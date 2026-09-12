@@ -154,10 +154,12 @@ async def test_run_generate_valid_persists_draft(gen_env) -> None:
     sessions, deps, session_id, obs = gen_env
     result = await run_generate(session_id, deps)
     assert result.status == "done"
+    assert result.trip_id is not None
     state = await sessions.get(session_id)
     assert state is not None
     assert state.itinerary is not None
     assert state.itinerary["status"] == "draft"
+    assert state.trip_id == result.trip_id
     ids = {s["place_id"] for d in state.itinerary["days"] for s in d["stops"]}
     assert ids
     assert all(i.startswith("t:") or True for i in ids)
