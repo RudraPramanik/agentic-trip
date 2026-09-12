@@ -62,6 +62,20 @@ After a successful generate, the system MUST persist a trip the user can reopen.
 - **WHEN** routing geometry is missing for a leg
 - **THEN** the map still shows stop points and does not fabricate a polyline
 
+### Requirement: Reopenable trip is printable and downloadable
+
+After a successful generate produces a reopenable structured trip, the guest MUST be able to print or download a guidebook document that projects that same structured artifact. The print/PDF document MUST NOT be produced by a separate language-model rewrite of days, stops, or coordinates.
+
+#### Scenario: Print or download matches reopenable days
+
+- **WHEN** a guest reopens a generated trip and prints or downloads the guidebook
+- **THEN** the document’s days and stops match the reopenable structured trip (via GuidebookExport)
+
+#### Scenario: No LLM rewrite for the export document
+
+- **WHEN** print or PDF is produced for a trip
+- **THEN** day structure and stop identities are not rewritten by a language-model call on that path
+
 ### Requirement: Structure from planning engine; narrative from language model
 
 Day structure, stop order, visit windows, and coordinates MUST come from deterministic planning/validation (a travel-engine-class layer), not from unconstrained model prose. Language models MAY write titles, day stories, and preference parsing. A finish/save MUST NOT succeed if validation of the structured itinerary failed, unless the run was explicitly aborted. Abort and wall-clock timeout MUST NOT count as a successful finish or draft save.
