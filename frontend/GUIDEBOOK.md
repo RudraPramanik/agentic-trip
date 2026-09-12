@@ -12,3 +12,5 @@
 2. Guest chat → confirm scope → (optional acquire) → **Build plan**.
 3. On draft ready, open guidebook: days + map points + empty booking.
 4. Confirm no polyline when geometry missing; break map style URL → list still usable.
+5. **Print / Download PDF (P5b):** use Print or Download PDF on guidebook; or open `/guidebook-fixture` for fixture smoke. See `PDF.md`.
+

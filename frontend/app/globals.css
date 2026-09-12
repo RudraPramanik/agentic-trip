@@ -242,3 +242,85 @@ input:disabled {
   font-size: 0.9rem;
 }
 
+.guidebook-export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guidebook-export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.guidebook-print-btn,
+.guidebook-download-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.guidebook-export-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.95rem;
+}
+
+/* On screen, print layout is visually available but secondary; print media flips. */
+.guidebook-print {
+  display: none;
+}
+
+.guidebook-print-cover h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.guidebook-print-day {
+  margin-top: 1rem;
+}
+
+.guidebook-print-day h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.guidebook-print-booking {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #c5cdc7;
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .shell > header,
+  .shell > form,
+  .messages > p,
+  .hitl-chips,
+  .catalog-panel,
+  .generate-panel,
+  .map-fallback,
+  .no-print {
+    display: none !important;
+  }
+
+  .guidebook-print {
+    display: block !important;
+  }
+
+  .guidebook-screen {
+    display: none !important;
+  }
+
+  .shell {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+

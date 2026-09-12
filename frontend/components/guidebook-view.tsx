@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { GuidebookExportActions } from "@/components/guidebook-export-actions";
 import type { GuidebookExport } from "@/lib/sse";
 
 /** Hollow booking slot — no rates, no vendor SDKs (P5.5 / P8 owns API). */
@@ -39,28 +40,31 @@ export function GuidebookView({ exportData, mapSlot }: Props) {
           <p className="guidebook-hubs">Hubs: {exportData.hubs?.join(" → ")}</p>
         ) : null}
       </header>
-      {mapSlot}
-      {days.map((day) => (
-        <section
-          key={day.day_index}
-          className="guidebook-day"
-          aria-label={`Day ${day.day_index}`}
-        >
-          <h3>
-            Day {day.day_index}
-            {day.title ? `: ${day.title}` : ""}
-          </h3>
-          {day.story ? <p className="guidebook-story">{day.story}</p> : null}
-          <ul className="guidebook-stops">
-            {(day.stops ?? []).map((stop) => (
-              <li key={`${day.day_index}-${stop.place_id}`}>
-                {stop.title || stop.name || stop.place_id}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      <BookingPlaceholder />
+      <GuidebookExportActions exportData={exportData} />
+      <div className="guidebook-screen no-print">
+        {mapSlot}
+        {days.map((day) => (
+          <section
+            key={day.day_index}
+            className="guidebook-day"
+            aria-label={`Day ${day.day_index}`}
+          >
+            <h3>
+              Day {day.day_index}
+              {day.title ? `: ${day.title}` : ""}
+            </h3>
+            {day.story ? <p className="guidebook-story">{day.story}</p> : null}
+            <ul className="guidebook-stops">
+              {(day.stops ?? []).map((stop) => (
+                <li key={`${day.day_index}-${stop.place_id}`}>
+                  {stop.title || stop.name || stop.place_id}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        <BookingPlaceholder />
+      </div>
     </article>
   );
 }

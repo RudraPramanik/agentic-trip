@@ -1,7 +1,7 @@
 # P5b PDF / print export — blueprint
 
-> Status: planning blueprint (implement via later OpenSpec `p5b-pdf-export`).  
-> LLD: [`../../llm.md`](../../llm.md) §5 (`GET .../pdf` optional)
+> Status: implemented via OpenSpec `p5b-pdf-export` (FE print CSS + `@react-pdf/renderer` from GuidebookExport; no server PDF).  
+> LLD: [`../../llm.md`](../../llm.md) §5 (FE print/PDF chosen; `GET .../pdf` deferred)
 
 ## Goal
 
@@ -19,7 +19,7 @@ Implement **one sub-phase at a time**.
 
 - **Goal:** Browser print stylesheet consuming the same export JSON.
 - **Modules:** `frontend/` print CSS / print view
-- **Types:** `PrintGuidebook`
+- **Types:** `PrintGuidebook` / `GuidebookExportProjection`
 - **Functions:** render export → print
 - **Services:** none
 - **Routes / APIs:** uses `GET /api/v1/trips/{id}/export`
@@ -44,11 +44,11 @@ Implement **one sub-phase at a time**.
 ### P5b.3 — Download/print action
 
 - **Goal:** User can download or print.
-- **Modules:** FE action and/or `src/api/trips.py`
+- **Modules:** FE action (`GuidebookExportActions`)
 - **Types:** —
 - **Functions:** download handler
-- **Services:** optional `TripService` bytes
-- **Routes / APIs:** `GET /api/v1/trips/{id}/pdf` **or** FE-only print (choose at code time)
+- **Services:** none (FE-only)
+- **Routes / APIs:** FE-only print/download (server `GET .../pdf` deferred)
 - **Algorithms / data:** —
 - **Depends on:** P5b.1 or P5b.2
 - **Proof:** download/print matches saved structured trip

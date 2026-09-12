@@ -118,7 +118,7 @@ Prefix: `/api/v1` except health. Routers depend on services only.
 | P4 | `POST /api/v1/sessions/{id}/generate/abort` | `GenerateRunner.abort` | `{ }` | `{ "abort_requested": true }` |
 | P5 | `GET /api/v1/trips/{id}` | `TripService.get_trip` | — | trip artifact (days, stops, narratives) |
 | P5 | `GET /api/v1/trips/{id}/export` | `TripService.export_guidebook` | — | `GuidebookExport` JSON |
-| P5b | `GET /api/v1/trips/{id}/pdf` | optional | — | `application/pdf` **or** FE print-only (choose at `p5b-pdf-export`) |
+| P5b | — (FE print + `@react-pdf/renderer`) | optional later: `GET /api/v1/trips/{id}/pdf` | — | Product path: FE print/PDF from `GuidebookExport` via `GET .../export`. Server PDF / ARQ deferred. |
 | P6 | `POST /api/v1/sessions/{id}/revise` | revise use-case | `{ "text" }` | SSE or updated itinerary |
 | P7 | `GET /api/v1/explore/near-me` | `ExploreService.near_me` | `lat,lng` optional | `{ "places": [] }` or honest empty |
 | P7 | `GET /api/v1/explore/last-trip` | `ExploreService.last_trip` | — | places **or** `{ "locked": true }` on draft / until authenticated `saved` |
