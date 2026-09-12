@@ -6,6 +6,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.modules.chat.models import TripSessionState, new_session_id
 
 
+class SchemaUnavailableError(Exception):
+    """Product schema (e.g. trip_sessions) is missing or unapplied."""
+
+
+def _is_missing_schema(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if type(current).__name__ == "UndefinedTableError":
+            return True
+        text = str(current).lower()
+        if "does not exist" in text and (
+            "trip_sessions" in text or "relation" in text
+        ):
+            return True
+        nxt = current.__cause__ or current.__context__
+        orig = getattr(current, "orig", None)
+        current = nxt if nxt is not None else orig
+    return False
+
+
+def _reraise_schema(exc: BaseException) -> None:
+    if _is_missing_schema(exc):
+        raise SchemaUnavailableError(
+            "Product schema is not applied"
+        ) from exc
+    raise exc
+
+
 class SessionRepository(Protocol):
     async def create(self, guest_id: str) -> TripSessionState: ...
 
@@ -26,21 +56,37 @@ class SqlSessionRepository:
             budget="dialogue",
         )
         self._session.add(state)
-        await self._session.commit()
-        await self._session.refresh(state)
+        try:
+            await self._session.commit()
+            await self._session.refresh(state)
+        except Exception as exc:  # noqa: BLE001 — map missing table
+            await self._session.rollback()
+            _reraise_schema(exc)
         return state
 
     async def get(self, session_id: str) -> TripSessionState | None:
-        result = await self._session.execute(
-            select(TripSessionState).where(TripSessionState.session_id == session_id)
-        )
-        return result.scalar_one_or_none()
+        try:
+            result = await self._session.execute(
+                select(TripSessionState).where(
+                    TripSessionState.session_id == session_id
+                )
+            )
+            return result.scalar_one_or_none()
+        except Exception as exc:  # noqa: BLE001
+            await self._session.rollback()
+            _reraise_schema(exc)
+            return None
 
     async def save(self, state: TripSessionState) -> TripSessionState:
-        merged = await self._session.merge(state)
-        await self._session.commit()
-        await self._session.refresh(merged)
-        return merged
+        try:
+            merged = await self._session.merge(state)
+            await self._session.commit()
+            await self._session.refresh(merged)
+            return merged
+        except Exception as exc:  # noqa: BLE001
+            await self._session.rollback()
+            _reraise_schema(exc)
+            raise
 
 
 class InMemorySessionRepository:

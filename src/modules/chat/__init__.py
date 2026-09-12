@@ -9,6 +9,7 @@ from src.modules.chat.dto import (
 from src.modules.chat.models import TripSessionState
 from src.modules.chat.repository import (
     InMemorySessionRepository,
+    SchemaUnavailableError,
     SessionRepository,
     SqlSessionRepository,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "HitlChoiceRequest",
     "HitlStateError",
     "InMemorySessionRepository",
+    "SchemaUnavailableError",
     "SendMessageRequest",
     "SessionAccessError",
     "SessionProjection",

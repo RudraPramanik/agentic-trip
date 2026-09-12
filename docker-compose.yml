@@ -20,5 +20,6 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://at:at@db:5432/at
+      APPLY_SCHEMA_ON_BOOT: "true"
     ports:
       - "8000:8000"

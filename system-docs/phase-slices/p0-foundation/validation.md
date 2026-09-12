@@ -6,29 +6,29 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 
 | ID | Proof |
 |----|--------|
-| P0.1 | [ ] Package + Compose `api`/`db` exist |
-| P0.2 | [ ] Settings fail-fast test; logging importable |
-| P0.3 | [ ] Alembic baseline + session factory importable |
-| P0.4 | [ ] Ports import; abstract/stub methods |
-| P0.5 | [ ] All feature modules import with no I/O |
-| P0.6 | [ ] Guest issue/read unit test |
-| P0.7 | [ ] LlmGateway stub returns unavailable without keys |
-| P0.8 | [ ] Obs no-op without keys |
-| P0.9 | [ ] Evals smoke runner importable |
-| P0.10 | [ ] `GET /health` and `GET /health/ready` ASGI tests |
-| P0.11 | [ ] `workers/` importable; API boots without Redis |
-| P0.12 | [ ] pytest + CI (or documented script) green |
+| P0.1 | [x] Package + Compose `api`/`db` exist |
+| P0.2 | [x] Settings fail-fast test; logging importable |
+| P0.3 | [x] Alembic baseline + session factory importable |
+| P0.4 | [x] Ports import; abstract/stub methods |
+| P0.5 | [x] All feature modules import with no I/O |
+| P0.6 | [x] Guest issue/read unit test |
+| P0.7 | [x] LlmGateway stub returns unavailable without keys |
+| P0.8 | [x] Obs no-op without keys |
+| P0.9 | [x] Evals smoke runner importable |
+| P0.10 | [x] `GET /health` and `GET /health/ready` ASGI tests |
+| P0.11 | [x] `workers/` importable; API boots without Redis |
+| P0.12 | [x] pytest + CI (or documented script) green |
 
 ## Checks
 
-- [ ] pytest health/smoke
-- [ ] import all modules without side effects
-- [ ] obs fail-soft unit test
+- [x] pytest health/smoke
+- [x] import all modules without side effects
+- [x] obs fail-soft unit test
 
 ## CI
 
-- [ ] Job or documented script runs these checks (introduce CI provider in p0 if missing)
-- [ ] Failures block merging/applying the next slice
+- [x] Job or documented script runs these checks (introduce CI provider in p0 if missing)
+- [x] Failures block merging/applying the next slice
 
 ## Exit criteria
 

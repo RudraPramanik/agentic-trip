@@ -9,6 +9,7 @@ from src.modules.chat import (
     ChatService,
     HitlChoiceRequest,
     HitlStateError,
+    SchemaUnavailableError,
     SendMessageRequest,
     SessionAccessError,
     SqlSessionRepository,
@@ -16,6 +17,11 @@ from src.modules.chat import (
 from src.modules.chat.service import SseEvent
 
 router = APIRouter(prefix="/api/v1")
+
+_SCHEMA_DETAIL = {
+    "code": "schema_unavailable",
+    "message": "Product schema is not applied",
+}
 
 
 def get_chat_service(
@@ -36,7 +42,10 @@ async def create_session(
     response: Response,
     chat: ChatService = Depends(get_chat_service),
 ) -> dict:
-    result = await chat.create_session(request, response)
+    try:
+        result = await chat.create_session(request, response)
+    except SchemaUnavailableError:
+        raise HTTPException(status_code=503, detail=_SCHEMA_DETAIL) from None
     return result.model_dump()
 
 
@@ -48,6 +57,8 @@ async def get_session(
 ) -> dict:
     try:
         projection = await chat.get_session(request, session_id)
+    except SchemaUnavailableError:
+        raise HTTPException(status_code=503, detail=_SCHEMA_DETAIL) from None
     except SessionAccessError:
         raise HTTPException(status_code=404, detail="session not found") from None
     return projection.model_dump()
@@ -77,6 +88,8 @@ async def send_message(
                 if await request.is_disconnected():
                     break
                 yield event.encode()
+        except SchemaUnavailableError:
+            yield SseEvent(event="error", data=_SCHEMA_DETAIL).encode()
         except SessionAccessError:
             yield SseEvent(
                 event="error",
@@ -101,6 +114,8 @@ async def resume_hitl(
             choice_id=body.choice_id,
             text=body.text,
         )
+    except SchemaUnavailableError:
+        raise HTTPException(status_code=503, detail=_SCHEMA_DETAIL) from None
     except SessionAccessError:
         raise HTTPException(status_code=404, detail="session not found") from None
     except HitlStateError:

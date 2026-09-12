@@ -7,9 +7,12 @@ Conversational trip OS. FastAPI modular monolith at `/src` plus a minimal Next.j
 ```bash
 # Python 3.12 via uv
 uv sync
-cp .env.example .env   # set DATABASE_URL
+cp .env.example .env   # set DATABASE_URL (must reach Compose PostGIS user/db `at`)
 docker compose up -d db
+# If alembic/pytest say role "at" does not exist, another Postgres owns host 5432 —
+# stop that instance or point DATABASE_URL at the Compose published port.
 uv run alembic upgrade head
+# Or set APPLY_SCHEMA_ON_BOOT=true and: uv run python -m src.boot
 uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -25,7 +28,7 @@ Chat + dialogue scope (P1–P2):
 - `GET /api/v1/sessions/{id}` — session projection (`hitl?`, `trip_scope?`)
 - `POST /api/v1/sessions/{id}/hitl` — resume HITL (`choice_id` or `text`) → confirm `trip_scope`
 
-Optional: set `LLM_API_KEY` for live LiteLLM; without keys the dialogue stub + heuristic intent path stays honest. Set `DIALOGUE_PREFER_POSTGRES_CHECKPOINTER=true` to use a Postgres LangGraph checkpointer (session `hitl` remains the FE projection).
+Optional: set `LLM_API_KEY` for live LiteLLM; without keys complete is structured unavailable and heuristic intent stays honest. Set `DIALOGUE_PREFER_POSTGRES_CHECKPOINTER=true` to use a Postgres LangGraph checkpointer (session `hitl` remains the FE projection).
 
 ## Frontend chat shell
 
@@ -49,7 +52,9 @@ Open http://localhost:3000 — the page creates a guest session, streams replies
 docker compose up --build
 ```
 
-`db` is `postgis/postgis:16-3.x`. The API image does not require Redis. HITL is LangGraph interrupt + session projection — not an ARQ job.
+`db` is `postgis/postgis:16-3.x`. The API applies pending Alembic revisions on boot (`APPLY_SCHEMA_ON_BOOT`) — no separate host `alembic upgrade` is required for `POST /api/v1/sessions`. The API image does not require Redis. HITL is LangGraph interrupt + session projection — not an ARQ job.
+
+`GET /health` is liveness (process up), not proof that schema is applied. `GET /health/ready` is a database ping, not a schema checksum.
 
 ## Tests
 

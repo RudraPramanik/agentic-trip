@@ -1,12 +1,15 @@
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.sessions import get_chat_service
 from src.main import create_app
 from src.modules.auth import CookieAuthAdapter, GUEST_COOKIE_NAME
-from src.modules.chat import ChatService, InMemorySessionRepository
-from src.modules.llm import StubLlmGateway
+from src.modules.chat import ChatService, InMemorySessionRepository, SchemaUnavailableError
+from src.modules.llm import LlmUnavailable, StubLlmGateway
+from src.modules.llm.dialogue_stub import LocalDialogueStub
+from src.modules.llm.litellm_adapter import LiteLlmAdapter
 from src.modules.monitor import NoOpObs
 from tests.fakes import (
     FakeDialogueLlm,
@@ -194,3 +197,49 @@ def test_obs_recording_on_asgi_turn() -> None:
         json={"text": "4 days Kyoto"},
     )
     assert "chat.turn" in obs.traces
+
+
+class _MissingSchemaRepo(InMemorySessionRepository):
+    async def create(self, guest_id: str):
+        raise SchemaUnavailableError("Product schema is not applied")
+
+
+def test_create_session_missing_schema_is_honest_503() -> None:
+    client, _, _ = _client_with_service(repo=_MissingSchemaRepo())
+    response = client.post("/api/v1/sessions")
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": {
+            "code": "schema_unavailable",
+            "message": "Product schema is not applied",
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_app_wires_unavailable_gateway_not_canned_stub() -> None:
+    application = create_app()
+    gateway = application.state.llm_gateway
+    assert not isinstance(gateway, LocalDialogueStub)
+    result = await gateway.complete(
+        "dialogue", [{"role": "user", "content": "Japan food slow"}]
+    )
+    assert isinstance(result, LlmUnavailable)
+    assert not isinstance(result, str)
+
+
+def test_wired_gateway_missing_duration_asks_no_scope() -> None:
+    client, _, _ = _client_with_service(llm=LiteLlmAdapter(api_key=None))
+    created = client.post("/api/v1/sessions")
+    session_id = created.json()["session_id"]
+    response = client.post(
+        f"/api/v1/sessions/{session_id}/messages",
+        json={"text": "Japan food slow"},
+    )
+    events = _parse_sse(response.text)
+    messages = [data.get("content") for name, data in events if name == "message"]
+    assert messages
+    assert any("days" in str(content).lower() for content in messages)
+    projection = client.get(f"/api/v1/sessions/{session_id}")
+    assert projection.status_code == 200
+    assert projection.json()["trip_scope"] is None

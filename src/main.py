@@ -30,7 +30,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     application.state.auth_port = CookieAuthAdapter()
-    application.state.llm_gateway = build_llm_gateway(api_key=settings.llm_api_key)
+    application.state.llm_gateway = build_llm_gateway(
+        api_key=settings.llm_api_key,
+        dialogue_stub_fallback=False,
+    )
     application.state.obs_port = NoOpObs()
     application.state.geo_gateway = NominatimAdapter(
         base_url=settings.nominatim_base_url,

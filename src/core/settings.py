@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     nominatim_user_agent: str = "agentic-trip/0.1 (local; contact: dev@localhost)"
     nominatim_timeout_seconds: float = 5.0
     dialogue_prefer_postgres_checkpointer: bool = False
+    apply_schema_on_boot: bool = False
 
     @property
     def cookie_secure(self) -> bool:

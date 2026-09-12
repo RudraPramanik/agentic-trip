@@ -2,7 +2,23 @@ import pytest
 
 from src.db.session import get_sessionmaker, ping_db
 from src.modules.chat.models import TripSessionState
-from src.modules.chat.repository import SqlSessionRepository
+from src.modules.chat.repository import (
+    SchemaUnavailableError,
+    SqlSessionRepository,
+    _reraise_schema,
+)
+
+
+def test_undefined_table_is_schema_unavailable() -> None:
+    class UndefinedTableError(Exception):
+        pass
+
+    with pytest.raises(SchemaUnavailableError):
+        try:
+            raise UndefinedTableError('relation "trip_sessions" does not exist')
+        except Exception as exc:
+            _reraise_schema(exc)
+
 
 
 @pytest.mark.asyncio

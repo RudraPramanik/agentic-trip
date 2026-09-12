@@ -23,3 +23,4 @@ def test_missing_langfuse_keys_are_optional(monkeypatch: pytest.MonkeyPatch) -> 
     assert settings.langfuse_public_key is None
     assert settings.langfuse_secret_key is None
     assert settings.llm_api_key is None
+    assert settings.apply_schema_on_boot is False
