@@ -9,7 +9,7 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 | P5.1 | [ ] GuidebookExport schema |
 | P5.2 | [ ] GET trip + export ASGI |
 | P5.3 | [ ] FE guidebook days (smoke) |
-| P5.4 | [ ] map points without fake polyline |
+| P5.4 | [ ] map points without fake polyline; v1 points-only unless later geometry exists |
 | P5.5 | [ ] empty booking UI no prices |
 | P5.6 | [ ] media not on generate path |
 

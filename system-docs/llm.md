@@ -32,7 +32,7 @@ Follow architecture L1–L24. Especially:
 | L14 | Routers → services → ports/adapters |
 | L16 | `LlmGateway` + LiteLLM; role aliases `dialogue` / `narrative` / `embed` |
 | L17 | Generate = in-process SSE first; ARQ adapter later behind `GenerateRunner` |
-| L18 | Guest cookie continue; save trip / save explore places need auth (OAuth later) |
+| L18 | Guest cookie continue; v1 persist is **`draft` only** (no save API); save trip / last-trip unlock need auth (OAuth later) |
 | L22 | Fail-soft every external kind |
 
 ---
@@ -52,7 +52,7 @@ frontend/ (Next.js)          src/ (FastAPI)
 | Module | Owns | First real code |
 |--------|------|-----------------|
 | `modules/auth` | `AuthPort`, guest cookie | P0 stub, P1 adapter |
-| `modules/llm` | `LlmGateway` / LiteLLM adapter | P0 stub, P1–P2 live |
+| `modules/llm` | `LlmGateway` / `LiteLlmAdapter` | P0 stub; **P2.1** live when keys exist |
 | `modules/monitor` | `ObsPort`, traces/spans | P0 no-op, deepen per phase |
 | `modules/evals` | golden runner | P0 smoke, P2/P4/P9 deepen |
 | `modules/chat` | `ChatService`, session messages | P1 |
@@ -60,7 +60,7 @@ frontend/ (Next.js)          src/ (FastAPI)
 | `modules/agents` | `dialogue_graph`, `generate_graph`, `revise_graph` | P2 / P4 / P6 |
 | `modules/catalog` | acquire, retrieve, `PlaceRepository` | P3 |
 | `modules/planner` | `TravelEngine`, validate | P4 |
-| `modules/trips` | draft/saved trip, export DTO | P4 persist, P5 export |
+| `modules/trips` | **draft** persist (v1); saved later; export DTO | P4 `persist_draft`, P5 export |
 | `modules/explore` | near-me, last-trip | P7 |
 | `modules/media` | media facade stub | P5 optional |
 | `modules/booking` | hollow placeholder | P8 |
@@ -85,7 +85,7 @@ Call chain: **routers → services → ports → adapters | repositories**. Grap
 | `GenerateRunner` | `ports` / `modules/agents` | abortable generate | `start(session_id)`, `abort(session_id)` |
 | `ChatService` | `modules/chat` | session + send | `create_session`, `send_message`, `get_session` |
 | `CatalogService` | `modules/catalog` | acquire + retrieve | `acquire(scope)`, `retrieve(scope, prefs)`, `readiness(session_id)` |
-| `TripService` | `modules/trips` | persist draft/saved, export | `persist_draft`, `get_trip`, `export_guidebook` |
+| `TripService` | `modules/trips` | persist **draft** (v1; not saved), export | `persist_draft`, `get_trip`, `export_guidebook` |
 | `ExploreService` | `modules/explore` | geo feed | `near_me(gps?, ip?)`, `last_trip(user)` |
 | `BookingService` | `modules/booking` | hollow slot | `get_placeholder(trip_id)` |
 | `SessionRepository` | `modules/chat` or `trips` | `TripSessionState` persist | `get`, `save` |
@@ -94,7 +94,7 @@ Call chain: **routers → services → ports → adapters | repositories**. Grap
 | `NominatimAdapter` | `modules/geo` | geocode | implements `GeoGateway` |
 | `NoOpObs` | `modules/monitor` | fail-soft tracer | implements `ObsPort` |
 
-Frontend (when the slice owns UI): `ChatShell`, `HitlChips`, `GuidebookView`, `TripMap`, `ExploreTabs`, `BookingPlaceholder`, `PrintGuidebook`.
+Frontend (when the slice owns UI): `ChatShell`, `HitlChips`, **`GenerateCta` (P4.11)**, `GuidebookView`, `TripMap`, `ExploreTabs`, `BookingPlaceholder`, `PrintGuidebook`.
 
 ---
 
@@ -114,14 +114,14 @@ Prefix: `/api/v1` except health. Routers depend on services only.
 | P2 | `POST /api/v1/sessions/{id}/hitl` | resume HITL | `{ "choice_id" }` or `{ "text" }` | session projection |
 | P3 | `GET /api/v1/sessions/{id}/catalog` | `CatalogService.readiness` | — | `{ "ready": bool, "status", "place_count"? }` |
 | P3 | `POST /api/v1/catalog/acquire` | `CatalogService.acquire` | `{ "session_id" }` | `{ "job_id", "status" }` |
-| P4 | `POST /api/v1/sessions/{id}/generate` | `GenerateRunner.start` | `{ }` | SSE progress + done/fail |
+| P4 | `POST /api/v1/sessions/{id}/generate` | `GenerateRunner.start` | `{ }` | SSE progress + done/fail/aborted. **P4.11** Build plan CTA calls this after scope — not every chat turn |
 | P4 | `POST /api/v1/sessions/{id}/generate/abort` | `GenerateRunner.abort` | `{ }` | `{ "abort_requested": true }` |
 | P5 | `GET /api/v1/trips/{id}` | `TripService.get_trip` | — | trip artifact (days, stops, narratives) |
 | P5 | `GET /api/v1/trips/{id}/export` | `TripService.export_guidebook` | — | `GuidebookExport` JSON |
 | P5b | `GET /api/v1/trips/{id}/pdf` | optional | — | `application/pdf` **or** FE print-only (choose at `p5b-pdf-export`) |
 | P6 | `POST /api/v1/sessions/{id}/revise` | revise use-case | `{ "text" }` | SSE or updated itinerary |
 | P7 | `GET /api/v1/explore/near-me` | `ExploreService.near_me` | `lat,lng` optional | `{ "places": [] }` or honest empty |
-| P7 | `GET /api/v1/explore/last-trip` | `ExploreService.last_trip` | — | places **or** `{ "locked": true }` pre-save |
+| P7 | `GET /api/v1/explore/last-trip` | `ExploreService.last_trip` | — | places **or** `{ "locked": true }` on draft / until authenticated `saved` |
 | P8 | `GET /api/v1/trips/{id}/booking` | `BookingService.get_placeholder` | — | `{ "status": "placeholder", "stays": [], "flights": [], "activities": [] }` |
 | P9 | — | middleware | rate limit headers | no new product resource |
 
@@ -157,17 +157,18 @@ TripSessionState
 ├── itinerary?         # days[] / stops[] with catalog place ids + coords
 ├── validation?        # pass/fail + errors
 ├── trip_id?
-├── run?               # status, started_at, abort_requested
+├── run?               # status, started_at, abort_requested, timed_out?
 └── obs_trace_id
 ```
 
 ```text
 TripArtifact
-├── days[], stops[], narratives, map
+├── status: draft | saved     # v1 persist_draft → draft only; saved = Later/OAuth
+├── days[], stops[], narratives, map   # v1 map = points only (no invented polylines)
 └── booking: { status: "placeholder", stays: [], flights: [], activities: [] }
 ```
 
-`GuidebookExport` (P5) is the JSON view-model for guidebook UI **and** later PDF. Source of truth is the saved structured trip, never LLM-written PDF prose as plan.
+`GuidebookExport` (P5) is the JSON view-model for guidebook UI **and** later PDF. Source of truth is the structured trip (**draft** in v1), never LLM-written PDF prose as plan.
 
 ---
 
@@ -206,13 +207,17 @@ scope ready → POST /api/v1/catalog/acquire
 
 ### 7.4 Generate + abort (P4)
 
+Starts only from an **explicit** user action after `trip_scope` (P4.11 Build plan CTA → this POST). Confirming scope does not generate.
+
 ```
 POST .../generate → GenerateRunner.start (in-process SSE)
   retrieve_places → TravelEngine.pack → validate_itinerary
   → (pass) write_narrative via LlmGateway(role=narrative)
-  → TripService.persist_draft
-Disconnect or POST .../abort → abort_requested → cooperative cancel
-Validation fail → do not persist success
+  → TripService.persist_draft   # status=draft; not saved
+Disconnect or POST .../abort or wall-clock timeout
+  → abort_requested → cooperative cancel → no success persist
+  → honest SSE aborted | error
+Validation fail → do not persist success; still record eval/trace
 ```
 
 ### 7.5 Revise (P6)
@@ -227,7 +232,8 @@ POST .../revise → parse revision intent → cap checker
 
 ```
 GET .../near-me → GPS if present else IP → catalog retrieve → honest empty if none
-GET .../last-trip → if no saved trip: locked; else catalog around last saved location
+GET .../last-trip → if no authenticated saved trip (incl. guest draft): locked
+                  else catalog around last saved location
 ```
 
 ---
@@ -241,7 +247,7 @@ GET .../last-trip → if no saved trip: locked; else catalog around last saved l
 | `haversine_meters` | `planner` | Spherical distance | Fail-soft times when OSRM missing |
 | `travel_matrix` | `planner` | OSRM table else haversine + penalty | No geometry invention |
 | `retrieve_places` | `PlaceRepository` | PostGIS bbox ∩ category/tags; GiST | Vectors later |
-| `classify_scope` | `geo` / agents | Admin level + bbox span + place class; LLM hubs only if thin country | Never silent country centroid |
+| `classify_scope` | `geo` / agents | Admin level + bbox span + place class; country-long writes `hubs[]` or HITL; LLM hubs only if thin country | Never silent country centroid |
 | `geocode_search` | `GeoGateway` | Return ranked candidates | HITL if ambiguous |
 | `near_me` | `ExploreService` | GPS → IP → retrieve | Honest empty |
 | `acquire_catalog` | worker | Bounded retry; region/hubs polygons only | Mark failed |
@@ -270,10 +276,13 @@ Follow [`phase-slices/SHARED-SWE-LLD.md`](./phase-slices/SHARED-SWE-LLD.md) in f
 | P0.10 | §5 health | `GET /health`, `/health/ready` |
 | P0.11–P0.12 | workers, tests | import smoke |
 | P1.1–P1.9 | §5 sessions, §7.1 | `ChatService`, cookie `AuthPort` |
-| P2.1–P2.9 | §7.2, `classify_scope` | `dialogue_graph`, HITL route |
+| P2.1 | §4 `LiteLlmAdapter` | live gateway when keys exist; stub if missing |
+| P2.1–P2.9 | §7.2, `classify_scope` | `dialogue_graph`, HITL route; country-long hubs/HITL |
 | P3.1–P3.8 | §7.3, retrieve | `CatalogService`, ARQ |
-| P4.1–P4.10 | §7.4, §8 pack/validate | `GenerateRunner`, `TravelEngine` |
-| P5.1–P5.6 | §5 trips, `GuidebookExport` | map + guidebook |
+| P4.1 / P4.8 | §7.4 timeout + abort | wall-clock timeout shares abort path |
+| P4.1–P4.10 | §7.4, §8 pack/validate | `GenerateRunner`, `TravelEngine`, `persist_draft` |
+| P4.11 | §5 generate POST | FE Build plan CTA after scope |
+| P5.1–P5.6 | §5 trips, `GuidebookExport` | map + guidebook; **v1 points-only** |
 | P5b.1–P5b.4 | export DTO only | print/pdf, no LLM |
 | P6.1–P6.5 | §7.5 | `revise_graph`, caps |
 | P7.1–P7.5 | §7.6 | `ExploreService` |

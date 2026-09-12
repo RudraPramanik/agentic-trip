@@ -17,15 +17,15 @@ Implement **one sub-phase at a time**.
 
 ### P2.1 — Intent schema + parse
 
-- **Goal:** Structured intent from user text via `LlmGateway` role `dialogue`.
+- **Goal:** Structured intent from user text via `LlmGateway` role `dialogue`. **P2.1 owns `LiteLlmAdapter`:** when keys exist, complete via LiteLLM; when missing, keep the P0 stub (`LlmUnavailable`).
 - **Modules:** `src/modules/agents/`, `src/modules/llm/`
-- **Types:** `TripIntent` (duration, vibe, constraints)
-- **Functions:** `parse_intent(text) -> TripIntent | AskClarification`
+- **Types:** `TripIntent` (duration, vibe, constraints); `LiteLlmAdapter`
+- **Functions:** `parse_intent(text) -> TripIntent | AskClarification`; `LiteLlmAdapter.complete`
 - **Services:** called from dialogue graph / ChatService
 - **Routes / APIs:** none new
 - **Algorithms / data:** JSON schema structured out; missing duration → ask
-- **Depends on:** P1.3, P0.7 (live gateway OK)
-- **Proof:** unit test: "10 days Japan food slow" fills duration + vibe; missing duration → ask
+- **Depends on:** P1.3, P0.7 (live gateway when keys exist)
+- **Proof:** unit test: "10 days Japan food slow" fills duration + vibe; missing duration → ask; missing keys → stub, not crash
 - **Non-goals:** packing days
 
 ### P2.2 — GeoGateway + geocode adapter
@@ -62,9 +62,9 @@ Implement **one sub-phase at a time**.
 - **Functions:** `classify_scope(intent, candidate) -> TripScope | NeedsHitl`
 - **Services:** used by dialogue graph
 - **Routes / APIs:** none
-- **Algorithms / data:** admin level + bbox span + place class; LLM hubs only if thin country; named city wins
+- **Algorithms / data:** admin level + bbox span + place class; LLM hubs only if thin country; named city wins; **country + longer than short threshold writes `hubs[]` or HITL** (Japan 10 days)
 - **Depends on:** P2.1, P2.3
-- **Proof:** unit: Kyoto city; Meghalaya region-ish; Japan 3d → best region flagged for explain
+- **Proof:** unit: Kyoto city; Meghalaya region-ish; Japan 3d → best region flagged for explain; Japan 10d → `hubs[]` or HITL (not country-without-hubs)
 - **Non-goals:** persist itinerary
 
 ### P2.5 — dialogue_graph + interrupt
@@ -129,12 +129,12 @@ Implement **one sub-phase at a time**.
 - **Routes / APIs:** none
 - **Algorithms / data:** —
 - **Depends on:** P2.7
-- **Proof:** goldens: city/region/country/ambiguous Paris; Meghalaya intent→region-ish; Japan short→best region explained
-- **Non-goals:** generate goldens
+- **Proof:** goldens listed in validation: city (Kyoto 4d); Tuscany-style region; country-short (Japan 3d); Kyoto-wins (“3 days in Kyoto”); Japan-10-days-or-HITL; ambiguous Paris; missing duration (ask, no persist)
+- **Non-goals:** generate goldens (P4.10)
 
 ## Proof
 
-Goldens: city/region/country/ambiguous Paris; Meghalaya intent→region-ish scope; Japan short→best region explained
+Goldens: city / Tuscany-style region / country-short / Kyoto-wins / Japan-10-days-or-HITL / ambiguous Paris / missing duration
 
 ## Explicit non-goals
 

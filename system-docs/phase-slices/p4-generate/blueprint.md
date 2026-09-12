@@ -23,9 +23,9 @@ Implement **one sub-phase at a time**.
 - **Functions:** `start(session_id)`, `abort(session_id)`
 - **Services:** runner orchestrates generate service
 - **Routes / APIs:** none yet
-- **Algorithms / data:** cooperative `abort_requested`
+- **Algorithms / data:** cooperative `abort_requested`; **wall-clock timeout** uses the same abort path (env-tunable seconds; freeze in `p4-generate` design)
 - **Depends on:** P0.4
-- **Proof:** unit: start emits progress; abort stops further stages
+- **Proof:** unit: start emits progress; abort **or timeout** stops further stages; no success persist after timeout
 - **Non-goals:** ARQ generate adapter
 
 ### P4.2 — TravelEngine.pack
@@ -95,28 +95,28 @@ Implement **one sub-phase at a time**.
 
 ### P4.7 — Draft persist
 
-- **Goal:** Persist session draft only if validation passed.
+- **Goal:** Persist session **`draft`** only if validation passed. Not a saved trip.
 - **Modules:** `src/modules/trips/`
-- **Types:** `TripService`, draft trip row
+- **Types:** `TripService`, draft trip row (`status=draft`)
 - **Functions:** `TripService.persist_draft(session_id, itinerary, validation)`
 - **Services:** `TripService`
 - **Routes / APIs:** none yet
-- **Algorithms / data:** refuse if validation fail unless aborted
+- **Algorithms / data:** refuse if validation fail unless aborted; do **not** set `saved` or add a save API
 - **Depends on:** P4.5, P1.2
-- **Proof:** unit: fail validation → no success persist
-- **Non-goals:** OAuth saved trip (auth later); booking vendors
+- **Proof:** unit: fail validation → no success persist; success → `status=draft` (last-trip still locked)
+- **Non-goals:** OAuth saved trip (auth later); booking vendors; save API
 
 ### P4.8 — Abort
 
 - **Goal:** Disconnect + explicit abort.
 - **Modules:** runner + `src/api/`
 - **Types:** —
-- **Functions:** `GenerateRunner.abort`; set `run.abort_requested`
+- **Functions:** `GenerateRunner.abort`; set `run.abort_requested` (disconnect, explicit abort, **or wall-clock timeout**)
 - **Services:** runner
 - **Routes / APIs:** `POST /api/v1/sessions/{id}/generate/abort`
-- **Algorithms / data:** cooperative cancel; no unbounded continuation
+- **Algorithms / data:** cooperative cancel; no unbounded continuation; timeout → same path, honest SSE `aborted` or `error`
 - **Depends on:** P4.1
-- **Proof:** abort test: no further LLM/engine after abort
+- **Proof:** abort test: no further LLM/engine after abort; timeout test: no success persist
 - **Non-goals:** HITL interrupt (different)
 
 ### P4.9 — Generate HTTP SSE
@@ -142,12 +142,25 @@ Implement **one sub-phase at a time**.
 - **Routes / APIs:** —
 - **Algorithms / data:** —
 - **Depends on:** P4.9
-- **Proof:** goldens produce structured days with catalog-only stops; abort stops work
+- **Proof:** goldens: Meghalaya/Japan-shaped catalog-only days; Japan-10-days-or-HITL; border/country filter; abandoned generate; failed generate still traced (obs fake or no-op)
 - **Non-goals:** PDF/map UI
+
+### P4.11 — FE generate CTA
+
+- **Goal:** After `trip_scope` is confirmed, chat shows an explicit **Build plan** control that calls existing `POST /api/v1/sessions/{id}/generate`. Confirming scope does not start generate.
+- **Modules:** `frontend/` chat (depends on P1.8 shell; P1.8 still has no generate button)
+- **Types:** `GenerateCta`
+- **Functions:** `startGenerate(session_id)` → existing generate SSE
+- **Services:** none (client)
+- **Routes / APIs:** consumes P4.9
+- **Algorithms / data:** —
+- **Depends on:** P4.9, P2.7, P1.8
+- **Proof:** documented: scope confirm waits; CTA starts generate SSE; dialogue message does not
+- **Non-goals:** new HTTP resource; auto-generate on confirm_scope
 
 ## Proof
 
-Meghalaya/Japan-shaped generate produces structured days with catalog-only stops; abort stops work
+Meghalaya/Japan-shaped generate produces structured days with catalog-only stops; abort/timeout stops work; Build plan CTA is explicit
 
 ## Explicit non-goals
 

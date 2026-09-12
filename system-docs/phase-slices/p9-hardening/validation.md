@@ -8,15 +8,15 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 |----|--------|
 | P9.1 | [ ] golden CI gate |
 | P9.2 | [ ] cost cap unit tests |
-| P9.3 | [ ] abort harden test |
+| P9.3 | [ ] abort harden test (incl. timeout flag); does not invent timeout or last-trip-from-draft |
 | P9.4 | [ ] rate limit 429 |
-| P9.5 | [ ] full harness pass |
+| P9.5 | [ ] full bible golden union (P2.9 + P4.10) |
 
 ## Checks
 
-- [ ] full golden harness
+- [ ] full bible golden union (city / region / country-short / Kyoto-wins / country-long / Paris / border / missing duration / abandoned generate / failed generate traced)
 - [ ] rate limit / cost cap unit tests
-- [ ] abort under load smoke
+- [ ] abort / timeout under load smoke
 
 ## CI
 

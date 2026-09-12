@@ -117,7 +117,7 @@ Implement **one sub-phase at a time**.
 - **Algorithms / data:** —
 - **Depends on:** P1.5
 - **Proof:** documented local: send one message, see streamed text
-- **Non-goals:** generate button; map; guidebook
+- **Non-goals:** generate button (P4.11 owns Build plan CTA); map; guidebook
 
 ### P1.9 — Proof tests
 

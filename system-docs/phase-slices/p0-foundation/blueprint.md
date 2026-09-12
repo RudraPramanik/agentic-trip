@@ -65,7 +65,7 @@ Implement **one sub-phase at a time**. Do not start P0.{m+1} until P0.{m} proof 
 - **Goal:** Protocol/ABC stubs for all gateways used later.
 - **Modules:** `src/ports/` (or `src/modules/*/ports.py` re-exported)
 - **Types:** `LlmGateway`, `AuthPort`, `ObsPort`, `GeoGateway`, `GenerateRunner`, `TravelEngine`, `PlaceRepository`
-- **Functions:** abstract methods only: `complete`, `issue_guest`, `start_trace`, `search`, `start`, `pack`, `retrieve`
+- **Functions:** abstract methods only: `complete`, `embed`, `issue_guest`, `start_trace`, `search`, `start`, `pack`, `retrieve`
 - **Services:** none
 - **Routes / APIs:** none
 - **Algorithms / data:** —

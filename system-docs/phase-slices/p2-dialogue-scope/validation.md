@@ -6,19 +6,19 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 
 | ID | Proof |
 |----|--------|
-| P2.1 | [ ] parse_intent structured / ask on missing duration |
+| P2.1 | [ ] parse_intent structured / ask on missing duration; `LiteLlmAdapter` when keys exist, stub when missing |
 | P2.2 | [ ] GeoGateway mock timeout → empty |
 | P2.3 | [ ] 0/1/N candidates |
-| P2.4 | [ ] classify_scope unit cases |
+| P2.4 | [ ] classify_scope unit cases incl. country-long `hubs[]` or HITL |
 | P2.5 | [ ] Paris interrupt |
 | P2.6 | [ ] HITL resume API |
 | P2.7 | [ ] trip_scope written |
 | P2.8 | [ ] FE chips (manual note OK) |
-| P2.9 | [ ] Scope goldens listed in blueprint |
+| P2.9 | [ ] Scope goldens: city; Tuscany-style region; country-short; Kyoto-wins; Japan-10-days-or-HITL; Paris; missing duration |
 
 ## Checks
 
-- [ ] Golden scope classification cases
+- [ ] Golden scope classification cases (bible: city / region / country-short / named-city-wins / country-long / ambiguous / missing duration)
 - [ ] HITL interrupt resume with choice
 - [ ] geo gateway fail-soft tests
 

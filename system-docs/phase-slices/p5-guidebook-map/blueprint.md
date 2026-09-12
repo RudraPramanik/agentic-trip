@@ -62,10 +62,10 @@ Implement **one sub-phase at a time**.
 - **Functions:** plot stops; optional line layer if geom present
 - **Services:** none
 - **Routes / APIs:** uses trip map payload
-- **Algorithms / data:** no client-invented crow-flies as “roads”
+- **Algorithms / data:** no client-invented crow-flies as “roads”. **v1 is points-only** unless a later slice stores route geometry on the trip.
 - **Depends on:** P5.3
-- **Proof:** test or note: missing geom → points only
-- **Non-goals:** fake polylines
+- **Proof:** test or note: missing geom → points only; v1 has no polyline producer
+- **Non-goals:** fake polylines; inventing route geometry in this slice
 
 ### P5.5 — Empty booking block in UI
 

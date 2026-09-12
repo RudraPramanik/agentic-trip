@@ -9,7 +9,7 @@ Start from [`../SHARED-FAIL-SOFT.md`](../SHARED-FAIL-SOFT.md) and [`../SHARED-SW
 | Overpass/OTM down | Fail-soft empty/partial; honest readiness |
 | Thin catalog | Do not scrape country centroid or foreign fill |
 | ARQ/Redis down | Marked failed job; user-visible status |
-| Empty retrieve | Geo fallback then HITL |
+| Empty retrieve | Honest empty + HITL (PostGIS *is* v1 retrieve; vector geo-fallback later) |
 
 ## SWE / LLD delta
 

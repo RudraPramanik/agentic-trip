@@ -7,15 +7,16 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 | ID | Proof |
 |----|--------|
 | P7.1 | [ ] GPS then IP; honest empty |
-| P7.2 | [ ] last-trip locked without save |
+| P7.2 | [ ] last-trip locked on guest draft; fixture saved → ids or empty |
 | P7.3 | [ ] explore HTTP ASGI |
-| P7.4 | [ ] FE dual-tab smoke |
-| P7.5 | [ ] no fake POI ids |
+| P7.4 | [ ] FE dual-tab: anchors persist; IP approximate copy; plan-from-card real identity |
+| P7.5 | [ ] no fake POI ids; last-trip locked on draft |
 
 ## Checks
 
-- [ ] last-trip locked without save
+- [ ] last-trip locked on draft (not unlocked by guest generate)
 - [ ] IP approximate labeling
+- [ ] tab switch does not destroy the other anchor
 - [ ] no fake POI ids
 
 ## CI

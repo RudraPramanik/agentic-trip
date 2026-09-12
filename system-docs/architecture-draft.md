@@ -31,7 +31,7 @@ Last updated: 2026-09-11 (product-goal SSOT rename + pointer retarget)
 | L15 | **AI eng from early** = tracing + offline goldens skeleton in P0; deepen each phase | Langfuse-class traces; retrieval + agent spans; see §13 |
 | L16 | **Multi-model via `LlmGateway` + LiteLLM** | Role aliases (dialogue/narrative/embed); Bedrock / Gemini / OpenRouter / NIM swap by env; see §4.5 |
 | L17 | **Generate runner** = in-process **SSE first**; same port, ARQ adapter later | Catalog acquire still ARQ (P3); see §5.9 |
-| L18 | **Auth** = guest cookie for continue; **OAuth later** | **Save trip** + **save explore places** require authenticated user; see §4.6 |
+| L18 | **Auth** = guest cookie for continue; **OAuth later** | **Save trip** + **save explore places** require authenticated user; v1 persist is **`draft` only** (no save API); last-trip locked until `saved`; see §4.6 |
 | L19 | Abstractions ports everywhere practical | LLM, geo, media, retrieve, travel engine, generate runner, auth |
 | L20 | **Repo layout:** BE is **repo root** (`/src`), not `/backend` | `/frontend` colocated for now; extractable later; see §3 |
 | L21 | **`phase-slices/`** = per-phase implementation blueprints | Blueprint → validate/CI → next phase; see §14–§15 |
@@ -194,7 +194,8 @@ LLM_EMBED_MODEL=openai/text-embedding-3-small   # or NIM/OpenRouter equivalent
 - No login wall on first prompt.
 - Guest **continues** without forced signup; save actions prompt auth when OAuth exists.
 - Until OAuth ships: keep `AuthPort` + guest identity; optional stub “dev user” only in local if needed — do not fake OAuth in prod paths.
-- **Last trip location** Explore still requires a **saved** trip (bible) ⇒ effectively authenticated once save exists.
+- **v1 (P0–P9):** generate persists a **`draft`** reopenable in the guest cookie session. That is not a saved trip. **Do not add a save API** in these phases. Last-trip stays locked. Tests for the `saved` branch use a fixture row only — not a fake OAuth user on prod paths.
+- **Last trip location** Explore still requires a **saved** trip (bible) ⇒ locked through P0–P9; effectively authenticated once Later save exists.
 
 ---
 

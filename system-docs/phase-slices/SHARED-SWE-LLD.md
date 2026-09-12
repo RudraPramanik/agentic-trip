@@ -53,7 +53,7 @@ Python modules: `snake_case`. Types: `PascalCase`. Route functions: `verb_noun` 
 - Single `LlmGateway`; single `GeoGateway` (bible).
 - Dialogue budget vs generate budget; never generate on every chat turn.
 - Phase-gated tools; bounded loops; validate before persist.
-- Stream abort on disconnect; generate timeout.
+- Stream abort on disconnect; **generate timeout** (wall-clock; same `abort_requested` path as disconnect).
 - Guest cookie continue; durable save / last-trip require authenticated saved trip (OAuth later).
 - Catalog ingest: chosen region/hubs only — never country-centroid scrape.
 - Country filter: no foreign POIs on the schedule.
@@ -71,7 +71,7 @@ Python modules: `snake_case`. Types: `PascalCase`. Route functions: `verb_noun` 
 | Scope classify | Geo metadata first; LLM hubs only if thin country | Model as sole admin identity |
 | Near me | GPS then IP; honest empty | Fake city; fill last-trip from IP |
 | Catalog acquire | Bounded ARQ; region/hubs | Unbounded hang; foreign refill |
-| Generate abort | Disconnect + `abort_requested` cooperative cancel | Continue spend after abort |
+| Generate abort | Disconnect **or wall-clock timeout** + `abort_requested` cooperative cancel | Continue spend after abort/timeout |
 
 Complexity notes belong on the owning function (`pack_days`, `retrieve_places`, `haversine_meters`).
 

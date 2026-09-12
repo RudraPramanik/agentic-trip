@@ -27,11 +27,11 @@ blueprint.md (P{n}.1, P{n}.2, …)  →  implement one sub-phase  →  sub-phase
 | [p1-chat](./p1-chat/) | `p1-chat` | P1.1–P1.9 | Guest SSE round-trip |
 | [p2-dialogue-scope](./p2-dialogue-scope/) | `p2-dialogue-scope` | P2.1–P2.9 | Scope/HITL goldens |
 | [p3-catalog](./p3-catalog/) | `p3-catalog` | P3.1–P3.8 | Acquire + PostGIS retrieve |
-| [p4-generate](./p4-generate/) | `p4-generate` | P4.1–P4.10 | SSE generate + validate |
+| [p4-generate](./p4-generate/) | `p4-generate` | P4.1–P4.11 | SSE generate + validate + timeout + Build plan CTA |
 | [p5-guidebook-map](./p5-guidebook-map/) | `p5-guidebook-map` | P5.1–P5.6 | Map + guidebook + export DTO |
 | [p5b-pdf-export](./p5b-pdf-export/) | `p5b-pdf-export` | P5b.1–P5b.4 | PDF/print from DTO |
 | [p6-revision](./p6-revision/) | `p6-revision` | P6.1–P6.5 | Capped replan |
-| [p7-explore](./p7-explore/) | `p7-explore` | P7.1–P7.5 | Near me + last-trip |
+| [p7-explore](./p7-explore/) | `p7-explore` | P7.1–P7.5 | Near me + last-trip **locked on draft** |
 | [p8-booking-placeholder](./p8-booking-placeholder/) | `p8-booking-placeholder` | P8.1–P8.5 | Hollow stays |
 | [p9-hardening](./p9-hardening/) | `p9-hardening` | P9.1–P9.5 | Eval CI gate + caps |
 

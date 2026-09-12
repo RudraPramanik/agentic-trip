@@ -43,16 +43,16 @@ Implement **one sub-phase at a time**.
 
 ### P9.3 — Abort harden
 
-- **Goal:** Abort works multi-instance (Redis flag if needed).
+- **Goal:** Abort works multi-instance (Redis flag if needed). Hardens the P4.1/P4.8 abort **and timeout** path — does **not** introduce timeout or last-trip-from-draft as new product behavior.
 - **Modules:** `GenerateRunner`, redis flag
 - **Types:** —
 - **Functions:** `abort_requested` durable
 - **Services:** runner
 - **Routes / APIs:** existing abort route
-- **Algorithms / data:** shared flag if >1 API worker
+- **Algorithms / data:** shared flag if >1 API worker; timeout still sets the same flag
 - **Depends on:** P4.8
-- **Proof:** test: abort under concurrent start; no unbounded continuation
-- **Non-goals:** new UX
+- **Proof:** test: abort under concurrent start; no unbounded continuation; timeout still honored multi-instance
+- **Non-goals:** new UX; inventing timeout here; unlocking last-trip from draft
 
 ### P9.4 — Rate limit middleware
 
@@ -77,12 +77,12 @@ Implement **one sub-phase at a time**.
 - **Routes / APIs:** none
 - **Algorithms / data:** —
 - **Depends on:** P9.1–P9.4
-- **Proof:** CI runs goldens; cost/abort limits enforced in tests; obs still no-op without keys
-- **Non-goals:** Qdrant, OAuth, live booking
+- **Proof:** CI runs the **full bible golden union** (P2.9 + P4.10 cases); cost/abort/timeout limits enforced in tests; obs still no-op without keys
+- **Non-goals:** Qdrant, OAuth, live booking; treating draft as saved
 
 ## Proof
 
-CI runs goldens; cost/abort limits enforced in tests
+CI runs the bible golden union; cost/abort/timeout limits enforced in tests
 
 ## Explicit non-goals
 
