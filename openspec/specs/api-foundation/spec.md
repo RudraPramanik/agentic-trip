@@ -50,7 +50,7 @@ The API process MUST start and serve health probes without Redis, without a back
 
 ### Requirement: Product routes are phase-gated after foundation
 
-The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. After the chat and dialogue-scope slices ship, the API MAY expose dialogue session routes under `/api/v1/sessions` (create session, send message, get session, resume HITL). After the catalog slice ships, the API MUST expose catalog product routes `GET /api/v1/sessions/{id}/catalog` and `POST /api/v1/catalog/acquire`. After the generate slice ships, the API MUST expose generate product routes `POST /api/v1/sessions/{id}/generate` and `POST /api/v1/sessions/{id}/generate/abort`. After the guidebook-map slice ships, the API MUST expose trip product routes `GET /api/v1/trips/{id}` and `GET /api/v1/trips/{id}/export`. After the PDF-export slice ships, product PDF/print MUST be satisfied by frontend print and client PDF generation from GuidebookExport; the API MUST NOT be required to expose `GET /api/v1/trips/{id}/pdf` in this slice. The API MUST NOT expose trip save, explore, or booking product routes until those slices ship. The API MUST NOT use Wandr `guideagent` paths.
+The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. After the chat and dialogue-scope slices ship, the API MAY expose dialogue session routes under `/api/v1/sessions` (create session, send message, get session, resume HITL). After the catalog slice ships, the API MUST expose catalog product routes `GET /api/v1/sessions/{id}/catalog` and `POST /api/v1/catalog/acquire`. After the generate slice ships, the API MUST expose generate product routes `POST /api/v1/sessions/{id}/generate` and `POST /api/v1/sessions/{id}/generate/abort`. After the guidebook-map slice ships, the API MUST expose trip product routes `GET /api/v1/trips/{id}` and `GET /api/v1/trips/{id}/export`. After the PDF-export slice ships, product PDF/print MUST be satisfied by frontend print and client PDF generation from GuidebookExport; the API MUST NOT be required to expose `GET /api/v1/trips/{id}/pdf` in this slice. After the revision slice ships, the API MUST expose `POST /api/v1/sessions/{id}/revise` as a product route. The API MUST NOT expose trip save, explore, or booking product routes until those slices ship. The API MUST NOT use Wandr `guideagent` paths.
 
 #### Scenario: Session create is a product route
 
@@ -92,6 +92,11 @@ The HTTP API MUST keep health probes at `GET /health` and `GET /health/ready`. A
 - **WHEN** the PDF-export slice has shipped and a guest prints or downloads a guidebook PDF
 - **THEN** the product path uses GuidebookExport from trip export (or equivalent owned export) on the frontend and does not require `GET /api/v1/trips/{id}/pdf`
 
+#### Scenario: Revise is a product route after its slice
+
+- **WHEN** a client sends `POST /api/v1/sessions/{id}/revise` with revision text for a session they own that has a draft itinerary after the revision slice ships
+- **THEN** the API can start in-process revise and return an SSE stream with progress and a terminal done, error, or aborted outcome without using Wandr paths
+
 #### Scenario: Explore and booking remain non-product until their slices
 
 - **WHEN** a client sends explore or booking product routes before those slices ship
@@ -124,6 +129,15 @@ In-process generate and generate abort MUST run without depending on Redis or a 
 
 - **WHEN** Redis is not running and an owning guest starts generate for a session with confirmed trip_scope and usable catalog fixtures/fakes
 - **THEN** generate can still proceed on the in-process runner path (or fail for non-Redis product reasons) and MUST NOT fail solely because Redis is down
+
+### Requirement: Revise does not require Redis
+
+In-process revise MUST run without depending on Redis or a background worker. API liveness MUST remain independent of Redis. Catalog acquire MAY still require Redis/worker as before. Generate abort of an in-flight expensive run MUST still apply when that run is a revise.
+
+#### Scenario: Revise without Redis
+
+- **WHEN** Redis is not running and an owning guest starts revise for a session with a draft and usable catalog fixtures/fakes
+- **THEN** revise can still proceed on the in-process path (or fail for non-Redis product reasons) and MUST NOT fail solely because Redis is down
 
 ### Requirement: Pending schema revisions apply before the API serves product routes
 

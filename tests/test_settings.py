@@ -26,3 +26,5 @@ def test_missing_langfuse_keys_are_optional(monkeypatch: pytest.MonkeyPatch) -> 
     assert settings.langfuse_secret_key is None
     assert settings.llm_api_key is None
     assert settings.apply_schema_on_boot is False
+    assert settings.revise_max_loops == 3
+    assert settings.revise_timeout_seconds == 120.0

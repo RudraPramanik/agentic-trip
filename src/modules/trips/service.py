@@ -6,6 +6,7 @@ from typing import Any
 
 from src.modules.chat.models import TripSessionState
 from src.modules.chat.repository import SessionRepository
+from src.modules.planner.caps import ensure_revise_baseline
 from src.modules.planner.types import Itinerary, ValidateResult
 from src.modules.trips.export import GuidebookExport, to_guidebook_export
 from src.modules.trips.models import TripArtifact, new_trip_id
@@ -75,6 +76,7 @@ class TripService:
         state.itinerary = body
         state.validation = val_dict
         state.budget = "generate"
+        ensure_revise_baseline(state)
 
         artifact = TripArtifact(
             trip_id=trip_id,

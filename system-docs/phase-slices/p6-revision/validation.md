@@ -6,21 +6,23 @@ A slice is **done** only when every sub-phase proof below and the phase-level ch
 
 | ID | Proof |
 |----|--------|
-| P6.1 | [ ] parse revision intent unit |
-| P6.2 | [ ] cap checker stop+keep last valid |
-| P6.3 | [ ] revise_graph reuses engine |
-| P6.4 | [ ] `POST .../revise` ASGI |
-| P6.5 | [ ] less-walking-day-2 golden |
+| P6.1 | [x] parse revision intent unit (`tests/test_revise_intent.py`) |
+| P6.2 | [x] cap checker stop+keep last valid (`tests/test_revise_caps.py`) |
+| P6.3 | [x] revise_graph reuses engine (`tests/test_revise.py`) |
+| P6.4 | [x] `POST .../revise` ASGI (`tests/test_revise_api.py`) |
+| P6.5 | [x] less-walking-day-2 golden (`tests/evals/test_revise_goldens.py`) |
 
 ## Checks
 
-- [ ] revision cap enforced
-- [ ] structure updated golden
+- [x] revision cap enforced
+- [x] structure updated golden
 
 ## CI
 
-- [ ] Job or documented script runs these checks (introduce CI provider in p0 if missing)
-- [ ] Failures block merging/applying the next slice
+- [x] Job or documented script runs these checks (introduce CI provider in p0 if missing)
+- [x] Failures block merging/applying the next slice
+
+`.github/workflows/ci.yml` runs `uv run pytest` (includes P6 unit/ASGI/goldens) and `frontend` `npm run test:e2e` (includes `e2e/revise-plan.spec.ts`). Local terminal: `uv run python scripts/smoke_revise.py`.
 
 ## Exit criteria
 

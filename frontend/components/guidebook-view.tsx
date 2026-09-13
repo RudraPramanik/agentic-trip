@@ -29,7 +29,7 @@ export function GuidebookView({ exportData, mapSlot }: Props) {
   const cover = exportData.cover;
   const days = exportData.days ?? [];
   return (
-    <article className="guidebook" aria-label="Trip guidebook">
+    <article className="guidebook" aria-label="Trip guidebook" data-testid="guidebook">
       <header className="guidebook-cover">
         <h2>{cover?.title ?? "Trip draft"}</h2>
         <p className="guidebook-meta">
@@ -48,6 +48,7 @@ export function GuidebookView({ exportData, mapSlot }: Props) {
             key={day.day_index}
             className="guidebook-day"
             aria-label={`Day ${day.day_index}`}
+            data-testid={`guidebook-day-${day.day_index}`}
           >
             <h3>
               Day {day.day_index}
@@ -56,7 +57,10 @@ export function GuidebookView({ exportData, mapSlot }: Props) {
             {day.story ? <p className="guidebook-story">{day.story}</p> : null}
             <ul className="guidebook-stops">
               {(day.stops ?? []).map((stop) => (
-                <li key={`${day.day_index}-${stop.place_id}`}>
+                <li
+                  key={`${day.day_index}-${stop.place_id}`}
+                  data-testid={`guidebook-stop-${stop.place_id}`}
+                >
                   {stop.title || stop.name || stop.place_id}
                 </li>
               ))}

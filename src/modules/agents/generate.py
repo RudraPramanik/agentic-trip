@@ -45,6 +45,7 @@ async def run_generate(
     *,
     abort_check: AbortCheck | None = None,
     on_progress: ProgressCb | None = None,
+    extra_prefs: dict[str, Any] | None = None,
 ) -> GenerateResult:
     """Orchestrate generate stages. Services/ports only — no vendor HTTP/SQL here."""
 
@@ -75,6 +76,13 @@ async def run_generate(
             if isinstance(intent, dict) and intent.get("duration_days") is not None:
                 prefs["day_budget"] = intent["duration_days"]
             # Do not pass vibe as retrieve category — that would empty the catalog.
+            if extra_prefs:
+                retrieve_prefs = dict(prefs)
+                pack_prefs = dict(prefs)
+                pack_prefs.update(extra_prefs)
+            else:
+                retrieve_prefs = prefs
+                pack_prefs = prefs
 
             await progress("retrieve")
             if aborted():
@@ -82,7 +90,7 @@ async def run_generate(
 
             with deps.obs.span("generate.retrieve", session_id=session_id):
                 retrieved: RetrieveResult = await deps.catalog.retrieve(
-                    trip_scope, prefs
+                    trip_scope, retrieve_prefs
                 )
 
             if retrieved.empty or not retrieved.places:
@@ -97,7 +105,7 @@ async def run_generate(
                 return GenerateResult(status="aborted", reason="abort_requested")
 
             with deps.obs.span("generate.pack", session_id=session_id):
-                itinerary = deps.engine.pack(trip_scope, retrieved.places, prefs)
+                itinerary = deps.engine.pack(trip_scope, retrieved.places, pack_prefs)
                 if not isinstance(itinerary, Itinerary):
                     itinerary = Itinerary.from_dict(dict(itinerary))
 
@@ -116,7 +124,7 @@ async def run_generate(
                     itinerary,
                     catalog_ids,
                     trip_scope,
-                    day_budget=prefs.get("day_budget"),
+                    day_budget=pack_prefs.get("day_budget"),
                     place_countries=place_countries,
                 )
 

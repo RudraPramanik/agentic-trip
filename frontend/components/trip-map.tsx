@@ -143,6 +143,8 @@ export function TripMap({ exportData, onStyleFail }: Props) {
       ref={containerRef}
       role="img"
       aria-label="Trip stop map"
+      data-testid="trip-map"
+      data-stop-ids={points.map((p) => p.place_id).join(",")}
       data-points-only={hasGeom ? "false" : "true"}
     />
   );

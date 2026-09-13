@@ -5,6 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from src.api.catalog import router as catalog_router
 from src.api.generate import router as generate_router
 from src.api.health import router as health_router
+from src.api.revise import router as revise_router
 from src.api.sessions import router as sessions_router
 from src.api.trips import router as trips_router
 from src.modules.media import StubMediaProvider
@@ -94,17 +95,21 @@ def create_app() -> FastAPI:
         checkpointer=checkpointer,
     )
     application.state.travel_engine = GreedyTravelEngine()
-    # deps_factory is bound per-request in the generate router (DB session scoped).
+    application.state.settings = settings
+    # deps_factory is bound per-request in the generate/revise routers (DB session scoped).
     application.state.generate_runner = InProcessGenerateRunner(
         deps_factory=lambda _session_id: (_ for _ in ()).throw(
             RuntimeError("generate deps_factory not bound")
         ),
         timeout_seconds=settings.generate_timeout_seconds,
+        revise_timeout_seconds=settings.revise_timeout_seconds,
+        max_revise_loops=settings.revise_max_loops,
     )
     application.include_router(health_router)
     application.include_router(sessions_router)
     application.include_router(catalog_router)
     application.include_router(generate_router)
+    application.include_router(revise_router)
     application.include_router(trips_router)
     return application
 

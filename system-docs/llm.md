@@ -119,7 +119,7 @@ Prefix: `/api/v1` except health. Routers depend on services only.
 | P5 | `GET /api/v1/trips/{id}` | `TripService.get_trip` | — | trip artifact (days, stops, narratives) |
 | P5 | `GET /api/v1/trips/{id}/export` | `TripService.export_guidebook` | — | `GuidebookExport` JSON |
 | P5b | — (FE print + `@react-pdf/renderer`) | optional later: `GET /api/v1/trips/{id}/pdf` | — | Product path: FE print/PDF from `GuidebookExport` via `GET .../export`. Server PDF / ARQ deferred. |
-| P6 | `POST /api/v1/sessions/{id}/revise` | revise use-case | `{ "text" }` | SSE or updated itinerary |
+| P6 | `POST /api/v1/sessions/{id}/revise` | revise use-case | `{ "text" }` | SSE `progress` / `done` / `error` / `aborted` (same abort path as generate) |
 | P7 | `GET /api/v1/explore/near-me` | `ExploreService.near_me` | `lat,lng` optional | `{ "places": [] }` or honest empty |
 | P7 | `GET /api/v1/explore/last-trip` | `ExploreService.last_trip` | — | places **or** `{ "locked": true }` on draft / until authenticated `saved` |
 | P8 | `GET /api/v1/trips/{id}/booking` | `BookingService.get_placeholder` | — | `{ "status": "placeholder", "stays": [], "flights": [], "activities": [] }` |
@@ -223,9 +223,10 @@ Validation fail → do not persist success; still record eval/trace
 ### 7.5 Revise (P6)
 
 ```
-POST .../revise → parse revision intent → cap checker
-               → revise_graph re-enters generate with caps
+POST .../revise { text } → parse revision intent → cap checker
+               → revise_graph re-enters generate with caps (SSE progress)
                → structure + map update (not prose-only rewrite)
+               → abort/disconnect/timeout share generate abort path; last valid kept
 ```
 
 ### 7.6 Explore (P7)

@@ -118,6 +118,58 @@ def test_validate_foreign_poi_fails() -> None:
     assert any("foreign_poi" in e for e in result.errors)
 
 
+def test_pack_days_day_overrides_reduce_day_2_stops() -> None:
+    places = _places_jp() + [
+        {
+            "id": "jp-5",
+            "name": "Gion",
+            "lon": 135.77,
+            "lat": 35.00,
+            "country_code": "jp",
+        },
+        {
+            "id": "jp-6",
+            "name": "Nijo",
+            "lon": 135.75,
+            "lat": 35.01,
+            "country_code": "jp",
+        },
+        {
+            "id": "jp-7",
+            "name": "Pontocho",
+            "lon": 135.77,
+            "lat": 35.00,
+            "country_code": "jp",
+        },
+        {
+            "id": "jp-8",
+            "name": "Philosopher",
+            "lon": 135.80,
+            "lat": 35.03,
+            "country_code": "jp",
+        },
+    ]
+    scope = {"kind": "city", "country_code": "jp", "day_budget": 2}
+    baseline = pack_days(scope, places, {"day_budget": 2, "max_stops_per_day": 4})
+    revised = pack_days(
+        scope,
+        places,
+        {
+            "day_budget": 2,
+            "max_stops_per_day": 4,
+            "day_overrides": {2: {"max_stops_per_day": 2}},
+        },
+    )
+    assert len(baseline.days) == 2
+    assert len(revised.days) == 2
+    assert len(revised.days[1].stops) <= 2
+    assert len(revised.days[1].stops) < len(baseline.days[1].stops) or len(
+        baseline.days[1].stops
+    ) <= 2
+    ids = {s.place_id for d in revised.days for s in d.stops}
+    assert ids.issubset({f"jp-{i}" for i in range(1, 9)})
+
+
 def test_validate_day_cap_fails() -> None:
     itin = Itinerary(
         days=[

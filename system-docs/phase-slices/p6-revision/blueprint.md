@@ -1,6 +1,6 @@
 # P6 Revision — blueprint
 
-> Status: planning blueprint (implement via later OpenSpec `p6-revision`).  
+> Status: implemented via OpenSpec `p6-revision`.  
 > LLD: [`../../llm.md`](../../llm.md) §7.5
 
 ## Goal
@@ -62,7 +62,7 @@ Implement **one sub-phase at a time**.
 - **Functions:** `revise_session`
 - **Services:** revise use-case / runner
 - **Routes / APIs:** `POST /api/v1/sessions/{id}/revise`
-- **Algorithms / data:** SSE or result — same abort rules as generate
+- **Algorithms / data:** SSE `progress` / `done` / `error` / `aborted` — same abort rules as generate
 - **Depends on:** P6.3
 - **Proof:** ASGI revise updates itinerary
 - **Non-goals:** Wandr paths

@@ -18,6 +18,7 @@ import {
   postGenerateAbort,
   postHitlChoice,
   postMessage,
+  postRevise,
   readSse,
 } from "@/lib/sse";
 
@@ -58,6 +59,8 @@ export default function ChatShell() {
   const [mapFailed, setMapFailed] = useState(false);
   const [generateBusy, setGenerateBusy] = useState(false);
   const [generateStage, setGenerateStage] = useState<string | null>(null);
+  const [reviseBusy, setReviseBusy] = useState(false);
+  const [reviseStage, setReviseStage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -258,7 +261,7 @@ export default function ChatShell() {
   }, [sessionId, busy, refreshSession]);
 
   const onBuildPlan = useCallback(async () => {
-    if (!sessionId || busy || generateBusy) return;
+    if (!sessionId || busy || generateBusy || reviseBusy) return;
     setGenerateBusy(true);
     setGenerateStage("starting");
     setStatus("Building plan…");
@@ -303,7 +306,7 @@ export default function ChatShell() {
     } finally {
       setGenerateBusy(false);
     }
-  }, [sessionId, busy, generateBusy, refreshSession]);
+  }, [sessionId, busy, generateBusy, reviseBusy, refreshSession]);
 
   const onAbortGenerate = useCallback(async () => {
     if (!sessionId) return;
@@ -318,10 +321,98 @@ export default function ChatShell() {
     }
   }, [sessionId]);
 
+  const onRevisePlan = useCallback(async () => {
+    if (!sessionId || !input.trim() || busy || generateBusy || reviseBusy) return;
+    const text = input.trim();
+    setInput("");
+    setLines((prev) => [...prev, { role: "user", content: text }]);
+    setReviseBusy(true);
+    setReviseStage("starting");
+    setStatus("Revising plan…");
+    const previousDraft = draft;
+    const previousGuidebook = guidebook;
+    let succeeded = false;
+    let doneTripId: string | null = null;
+    try {
+      const response = await postRevise(API_BASE, sessionId, text);
+      await readSse(response, {
+        onProgress: (stage) => {
+          setReviseStage(stage);
+          setStatus(`Revising: ${stage}`);
+        },
+        onDone: (data) => {
+          succeeded = true;
+          setReviseStage("done");
+          setStatus("Draft updated");
+          const tid = typeof data.trip_id === "string" ? data.trip_id : null;
+          if (tid) {
+            doneTripId = tid;
+            setTripId(tid);
+          }
+        },
+        onAborted: (reason) => {
+          setReviseStage(null);
+          setStatus(`Revise aborted: ${reason}`);
+          setLines((prev) => [
+            ...prev,
+            { role: "error", content: `Revise aborted: ${reason}` },
+          ]);
+          if (previousDraft) setDraft(previousDraft);
+          if (previousGuidebook) setGuidebook(previousGuidebook);
+        },
+        onError: (message) => {
+          setReviseStage(null);
+          setStatus(`Revise failed: ${message}`);
+          setLines((prev) => [
+            ...prev,
+            { role: "error", content: `Revise failed: ${message}` },
+          ]);
+          if (previousDraft) setDraft(previousDraft);
+          if (previousGuidebook) setGuidebook(previousGuidebook);
+        },
+      });
+      if (succeeded) {
+        await refreshSession(sessionId);
+        const sess = await getSession(API_BASE, sessionId);
+        if (sess.ok) {
+          const body = (await sess.json()) as { trip_id?: string | null };
+          const tid = body.trip_id || doneTripId;
+          if (tid) {
+            setTripId(tid);
+            await loadGuidebook(tid);
+          }
+        } else if (doneTripId) {
+          await loadGuidebook(doneTripId);
+        }
+      }
+    } catch (err) {
+      setLines((prev) => [
+        ...prev,
+        { role: "error", content: `Revise request failed: ${err}` },
+      ]);
+      if (previousDraft) setDraft(previousDraft);
+      if (previousGuidebook) setGuidebook(previousGuidebook);
+    } finally {
+      setReviseBusy(false);
+    }
+  }, [
+    sessionId,
+    input,
+    busy,
+    generateBusy,
+    reviseBusy,
+    draft,
+    guidebook,
+    refreshSession,
+    loadGuidebook,
+  ]);
+
   const chips = hitl?.status === "pending" ? hitl.candidates ?? [] : [];
   const showAcquire = Boolean(tripScope?.kind) && !hitl;
   const showBuildPlan = Boolean(tripScope?.kind) && !hitl;
   const canOpenGuidebook = Boolean(tripId) && draft?.status === "draft";
+  const showRevisePlan = Boolean(draft?.status === "draft") && !hitl;
+  const expensiveBusy = busy || generateBusy || reviseBusy;
 
   return (
     <main className="shell">
@@ -370,7 +461,7 @@ export default function ChatShell() {
             <button
               type="button"
               className="catalog-acquire"
-              disabled={busy || generateBusy}
+              disabled={expensiveBusy}
               onClick={() => onAcquireCatalog()}
             >
               Acquire places
@@ -389,15 +480,17 @@ export default function ChatShell() {
             <button
               type="button"
               className="build-plan"
-              disabled={busy || generateBusy}
+              data-testid="build-plan-btn"
+              disabled={expensiveBusy}
               onClick={() => onBuildPlan()}
             >
               Build plan
             </button>
-            {generateBusy ? (
+            {generateBusy || reviseBusy ? (
               <button
                 type="button"
                 className="generate-abort"
+                data-testid="abort-run-btn"
                 onClick={() => onAbortGenerate()}
               >
                 Abort
@@ -413,6 +506,24 @@ export default function ChatShell() {
                 Open guidebook
               </button>
             ) : null}
+          </div>
+        ) : null}
+        {showRevisePlan ? (
+          <div className="revise-panel" role="group" aria-label="Revise plan">
+            <p className="generate-status" data-testid="revise-status">
+              {reviseStage
+                ? `Revise: ${reviseStage}`
+                : "Revise plan uses the composer text (Send stays chat-only)"}
+            </p>
+            <button
+              type="button"
+              className="revise-plan"
+              data-testid="revise-plan-btn"
+              disabled={expensiveBusy || !input.trim()}
+              onClick={() => onRevisePlan()}
+            >
+              Revise plan
+            </button>
           </div>
         ) : null}
         {showGuidebook && guidebook ? (
@@ -442,7 +553,11 @@ export default function ChatShell() {
           disabled={!sessionId || busy}
           aria-label="Message"
         />
-        <button type="submit" disabled={!sessionId || busy || !input.trim()}>
+        <button
+          type="submit"
+          data-testid="chat-send-btn"
+          disabled={!sessionId || expensiveBusy || !input.trim()}
+        >
           Send
         </button>
       </form>

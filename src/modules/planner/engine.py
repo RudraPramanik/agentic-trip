@@ -64,6 +64,9 @@ def pack_days(
     Complexity: O(n log n) sort + linear assign.
     """
     prefs = prefs or {}
+    dropped = {str(x) for x in (prefs.get("drop_place_ids") or [])}
+    if dropped:
+        places = [p for p in places if str(p.get("id") or "") not in dropped]
     n_days = _day_budget(scope, prefs)
     if not places:
         return Itinerary(
@@ -112,8 +115,14 @@ def pack_days(
     else:
         day_hubs = [None] * n_days
 
-    max_stops = int(prefs.get("max_stops_per_day") or _DEFAULT_MAX_STOPS_PER_DAY)
-    travel_budget = float(prefs.get("day_travel_budget_s") or _DEFAULT_DAY_TRAVEL_BUDGET_S)
+    raw_overrides = prefs.get("day_overrides") or {}
+    day_overrides: dict[int, dict[str, Any]] = {}
+    if isinstance(raw_overrides, dict):
+        for key, val in raw_overrides.items():
+            try:
+                day_overrides[int(key)] = dict(val) if isinstance(val, dict) else {}
+            except (TypeError, ValueError):
+                continue
 
     for day_i, hub in enumerate(day_hubs):
         day = Day(
@@ -122,11 +131,23 @@ def pack_days(
             if hub
             else None,
         )
+        day_over = day_overrides.get(day_i + 1) or {}
+        max_stops = int(
+            day_over.get("max_stops_per_day")
+            or prefs.get("max_stops_per_day")
+            or _DEFAULT_MAX_STOPS_PER_DAY
+        )
+        travel_budget = float(
+            day_over.get("day_travel_budget_s")
+            or prefs.get("day_travel_budget_s")
+            or _DEFAULT_DAY_TRAVEL_BUDGET_S
+        )
         candidates = [
             p
             for p in ordered
             if p.get("id")
             and str(p["id"]) not in used
+            and str(p["id"]) not in dropped
             and (hub is None or _place_near_hub(p, hub) or not hubs)
         ]
         # If hub filter emptied the pool, fall back to remaining unused places.

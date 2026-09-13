@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     acquire_max_tries: int = 3
     catalog_enqueue_inline: bool = False
     generate_timeout_seconds: float = 120.0
+    revise_max_loops: int = 3
+    revise_timeout_seconds: float = 120.0
 
     @property
     def cookie_secure(self) -> bool:

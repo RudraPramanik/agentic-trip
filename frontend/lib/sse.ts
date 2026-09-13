@@ -76,6 +76,19 @@ export async function postGenerateAbort(
   });
 }
 
+export async function postRevise(
+  apiBase: string,
+  sessionId: string,
+  text: string,
+): Promise<Response> {
+  return fetch(`${apiBase}/api/v1/sessions/${sessionId}/revise`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+}
+
 export async function getTrip(
   apiBase: string,
   tripId: string,
